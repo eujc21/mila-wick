@@ -1,0 +1,34 @@
+\
+# Screen dimensions
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+FPS = 60
+CAPTION = "My Pygame Window"
+
+# Colors
+LIGHT_GRAY = (200, 200, 200)
+PINK = (255, 105, 180)
+WHITE = (255, 255, 255)
+BLUE = (100, 150, 255) # Player circle color if not pink
+RADAR_BG_COLOR = (50, 50, 50, 150) # Semi-transparent dark gray
+RADAR_LINE_COLOR = (255, 0, 0) # Red
+BLACK = (0,0,0) # For projectile or other elements
+
+# Player settings
+PLAYER_RADIUS = 15
+PLAYER_SPEED = 5
+PLAYER_HEALTH = 100
+
+# Weapon settings
+WEAPON_DAMAGE_MIN = 5
+WEAPON_DAMAGE_MAX = 20
+WEAPON_FIRE_RATE_MIN = 0.1  # Delay in seconds
+WEAPON_FIRE_RATE_MAX = 0.5
+WEAPON_PROJECTILE_SPEED_MIN = 8
+WEAPON_PROJECTILE_SPEED_MAX = 15
+PROJECTILE_COLOR_MIN = 50
+PROJECTILE_COLOR_MAX = 255
+
+# Radar Settings
+RADAR_RADIUS = 40
+RADAR_MARGIN = 10
