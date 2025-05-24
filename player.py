@@ -2,9 +2,10 @@
 import pygame
 from settings import (
     PLAYER_RADIUS, PLAYER_SPEED, PLAYER_HEALTH, PINK, WHITE, 
-    SCREEN_WIDTH, SCREEN_HEIGHT
+    WORLD_WIDTH, WORLD_HEIGHT # Use world dimensions for clamping
 )
 from weapon import generate_weapon, Weapon
+from projectile import Projectile # Import Projectile
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, start_x, start_y):
@@ -16,12 +17,15 @@ class Player(pygame.sprite.Sprite):
         self.speed = PLAYER_SPEED
         self.weapon: Weapon = generate_weapon()
         self.direction = pygame.math.Vector2(0, 1)  # Default facing direction (down)
+        self.last_shot_time = 0 # Player tracks their own shot cooldown
         
         self.image = None 
-        self.rect = None
+        # self.rect will store player's position in WORLD coordinates
+        # The image is PLAYER_RADIUS * 2 wide/high
+        self.rect = pygame.Rect(0, 0, PLAYER_RADIUS * 2, PLAYER_RADIUS * 2)
+        self.rect.centerx = start_x # Initial position in world coordinates
+        self.rect.centery = start_y # Initial position in world coordinates
         self._create_player_image() 
-        self.rect.centerx = start_x
-        self.rect.centery = start_y
 
     def _create_player_image(self):
         surface_size = self.radius * 2
@@ -47,11 +51,9 @@ class Player(pygame.sprite.Sprite):
         pygame.draw.polygon(new_image, self.arrow_color, arrow_points)
 
         self.image = new_image
-        if self.rect:
-            current_center = self.rect.center
-            self.rect = self.image.get_rect(center=current_center)
-        else:
-            self.rect = self.image.get_rect()
+        # self.rect is already in world coordinates, its size is based on the image.
+        # No need to re-get rect if only image content changes, unless size changes.
+        # If image size could change, then: self.rect = self.image.get_rect(center=self.rect.center)
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -64,20 +66,43 @@ class Player(pygame.sprite.Sprite):
 
         direction_changed = False
         if dx != 0 or dy != 0:
-            new_direction = pygame.math.Vector2(dx, dy)
-            if self.direction != new_direction: # Compare vectors directly
+            # Normalize the input for direction vector only
+            new_direction = pygame.math.Vector2(dx, dy).normalize()
+            if self.direction != new_direction: 
                 self.direction = new_direction
                 direction_changed = True
         
-        move_vector = pygame.math.Vector2(dx, dy)
+        # Create movement vector from raw dx, dy and then normalize for speed calculation
+        move_vector = pygame.math.Vector2(dx, dy) 
         if move_vector.length_squared() > 0:
             move_vector = move_vector.normalize() * self.speed
         
+        # Update player's world position
         self.rect.x += move_vector.x
         self.rect.y += move_vector.y
 
-        # Keep player on screen
-        self.rect.clamp_ip(pygame.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
+        # Keep player within the entire world boundaries
+        self.rect.clamp_ip(pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT))
         
         if direction_changed:
-            self._create_player_image()
+            self._create_player_image() # Redraw player image if direction changed
+
+    def shoot(self, projectiles_group, all_sprites_group):
+        """Creates a projectile if the fire rate cooldown has passed."""
+        current_time = pygame.time.get_ticks()
+        # Fire rate is in seconds, convert to milliseconds for comparison
+        if current_time - self.last_shot_time > self.weapon.fire_rate * 1000:
+            self.last_shot_time = current_time
+            
+            # Spawn projectile slightly in front of the player based on direction
+            # Ensure direction is normalized before using for offset calculation
+            fire_direction = self.direction.normalize() if self.direction.length_squared() > 0 else pygame.math.Vector2(0,1)
+            spawn_offset_distance = self.radius + 5 # 5 pixels in front of the radius edge
+            spawn_offset = fire_direction * spawn_offset_distance
+            
+            proj_x = self.rect.centerx + spawn_offset.x
+            proj_y = self.rect.centery + spawn_offset.y
+            
+            projectile = Projectile(proj_x, proj_y, fire_direction, self.weapon)
+            projectiles_group.add(projectile)
+            all_sprites_group.add(projectile) # Add to the main drawing/update group

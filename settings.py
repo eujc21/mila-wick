@@ -19,6 +19,28 @@ PLAYER_RADIUS = 15
 PLAYER_SPEED = 5
 PLAYER_HEALTH = 100
 
+# Room and World Settings
+ROOM_WIDTH = SCREEN_WIDTH
+ROOM_HEIGHT = SCREEN_HEIGHT
+WORLD_ROOM_ROWS = 3
+WORLD_ROOM_COLS = 3
+WORLD_WIDTH = ROOM_WIDTH * WORLD_ROOM_COLS
+WORLD_HEIGHT = ROOM_HEIGHT * WORLD_ROOM_ROWS
+
+# Define more colors if needed, or use a generation scheme
+ROOM_COLORS = [
+    (255, 200, 200), (200, 255, 200), (200, 200, 255),
+    (255, 255, 150), (255, 150, 255), (150, 255, 255),
+    (220, 220, 100), (220, 100, 220), (100, 220, 220)
+]
+# Ensure there are enough colors for WORLD_ROOM_ROWS * WORLD_ROOM_COLS
+if len(ROOM_COLORS) < WORLD_ROOM_ROWS * WORLD_ROOM_COLS:
+    # Fallback: Generate random colors if not enough are predefined
+    import random
+    for _ in range(WORLD_ROOM_ROWS * WORLD_ROOM_COLS - len(ROOM_COLORS)):
+        ROOM_COLORS.append((random.randint(100, 250), random.randint(100, 250), random.randint(100, 250)))
+
+
 # Weapon settings
 WEAPON_DAMAGE_MIN = 5
 WEAPON_DAMAGE_MAX = 20
@@ -32,3 +54,8 @@ PROJECTILE_COLOR_MAX = 255
 # Radar Settings
 RADAR_RADIUS = 40
 RADAR_MARGIN = 10
+
+# Projectile Settings
+PROJECTILE_WIDTH = 10
+PROJECTILE_HEIGHT = 4
+DEFAULT_PROJECTILE_COLOR = (255, 0, 0) # Red, as requested

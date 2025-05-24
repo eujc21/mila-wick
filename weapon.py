@@ -19,7 +19,6 @@ class Weapon:
         self.fire_rate = fire_rate  # Delay in seconds between shots
         self.projectile_speed = projectile_speed
         self.projectile_color = projectile_color
-        self.last_shot_time = 0 # For controlling fire rate
 
     def __str__(self):
         return f"Weapon: {self.name}, DMG: {self.damage}, Rate: {self.fire_rate:.2f}, ProjSpeed: {self.projectile_speed}, Color: {self.projectile_color}"
