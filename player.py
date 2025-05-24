@@ -4,20 +4,24 @@ from settings import (
     PLAYER_RADIUS, PLAYER_SPEED, PLAYER_HEALTH, PINK, WHITE, 
     WORLD_WIDTH, WORLD_HEIGHT # Use world dimensions for clamping
 )
-from weapon import generate_weapon, Weapon
+from weapon import Weapon, WEAPON_DATA # Import Weapon class and WEAPON_DATA
 from projectile import Projectile # Import Projectile
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, start_x, start_y):
+    def __init__(self, start_x, start_y, initial_weapon_key="pistol"):
         super().__init__()
         self.radius = PLAYER_RADIUS
         self.circle_color = PINK
         self.arrow_color = WHITE
         self.health = PLAYER_HEALTH
         self.speed = PLAYER_SPEED
-        self.weapon: Weapon = generate_weapon()
+        
+        self.weapon: Weapon = None # Initialize weapon attribute
+        self.equip_weapon(initial_weapon_key) # Equip initial weapon using the new method
+            
         self.direction = pygame.math.Vector2(0, 1)  # Default facing direction (down)
         self.last_shot_time = 0 # Player tracks their own shot cooldown
+        self.last_attack_time = 0 # For melee attacks
         
         self.image = None 
         # self.rect will store player's position in WORLD coordinates
@@ -88,7 +92,11 @@ class Player(pygame.sprite.Sprite):
             self._create_player_image() # Redraw player image if direction changed
 
     def shoot(self, projectiles_group, all_sprites_group):
-        """Creates a projectile if the fire rate cooldown has passed."""
+        """Creates a projectile if the fire rate cooldown has passed and weapon is ranged."""
+        if self.weapon.type != "ranged":
+            print(f"Cannot shoot with {self.weapon.name}, it's a melee weapon.")
+            return
+
         current_time = pygame.time.get_ticks()
         # Fire rate is in seconds, convert to milliseconds for comparison
         if current_time - self.last_shot_time > self.weapon.fire_rate * 1000:
@@ -106,3 +114,90 @@ class Player(pygame.sprite.Sprite):
             projectile = Projectile(proj_x, proj_y, fire_direction, self.weapon)
             projectiles_group.add(projectile)
             all_sprites_group.add(projectile) # Add to the main drawing/update group
+
+    def melee_attack(self):
+        """Performs a melee attack if the cooldown has passed and weapon is melee."""
+        if self.weapon.type != "melee":
+            # Optionally, could print a message or handle trying to melee with a ranged weapon
+            # print(f"Cannot perform melee attack with {self.weapon.name}, it's a ranged weapon.")
+            return
+
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_attack_time > self.weapon.fire_rate * 1000: # Using fire_rate as attack speed
+            self.last_attack_time = current_time
+            
+            print(f"Player performed a melee attack with {self.weapon.name}!")
+            attack_rect = self.get_melee_attack_rect()
+            if attack_rect:
+                # For debugging or visual feedback later, we know the area
+                print(f"Melee attack rect: {attack_rect} (Range: {getattr(self.weapon, 'range', 'N/A')})")
+            
+            # Future implementation:
+            # for enemy in enemies_group: # Assuming an enemies_group exists
+            #     if attack_rect and attack_rect.colliderect(enemy.rect):
+            #         enemy.take_damage(self.weapon.damage)
+            #         print(f"Hit {enemy} with {self.weapon.name} for {self.weapon.damage} damage!")
+            return attack_rect # Return the attack rect for visualization
+        return None # No attack performed or no rect generated
+
+    def equip_weapon(self, weapon_key):
+        """Equips a weapon to the player based on the weapon_key."""
+        if weapon_key in WEAPON_DATA:
+            weapon_attrs = WEAPON_DATA[weapon_key]
+            self.weapon = Weapon(**weapon_attrs)
+            print(f"Player equipped {self.weapon.name}.")
+            # Reset cooldowns when switching weapons to prevent immediate attack/shot
+            current_time = pygame.time.get_ticks()
+            self.last_shot_time = current_time 
+            self.last_attack_time = current_time
+        else:
+            print(f"Warning: Weapon key '{weapon_key}' not found in WEAPON_DATA. No weapon equipped/changed.")
+            # Optionally, decide if player should keep current weapon or be unarmed
+            if self.weapon is None: # If no weapon was equipped at all (e.g. on init with bad key)
+                print("Player has no weapon. Defaulting to pistol.")
+                self.equip_weapon("pistol") # Fallback to a default
+
+    def get_melee_attack_rect(self):
+        """Defines the melee attack area in front of the player."""
+        if not hasattr(self.weapon, 'range') or self.weapon.type != "melee":
+            return None
+
+        attack_range = self.weapon.range
+        
+        # Normalized direction vector for the attack
+        norm_direction = self.direction.normalize() if self.direction.length_squared() > 0 else pygame.math.Vector2(0,1)
+
+        # Calculate the center of the attack rectangle.
+        # It's positioned extending from the player's edge up to attack_range.
+        # So, its center is player.center + direction * (player_radius + half_range).
+        # Let's define it as a rect in front of the player.
+        # The center of this rectangle would be offset from player center by player_radius + half_range.
+        
+        # Simpler: Position the attack area to start slightly in front of the player and extend by range.
+        # Offset the start of the rect from player center by player radius along direction.
+        rect_start_offset = norm_direction * self.radius
+        
+        # The attack rect's effective center will be along the direction, half the range from this start point.
+        effective_center_x = self.rect.centerx + norm_direction.x * (self.radius + attack_range / 2.0)
+        effective_center_y = self.rect.centery + norm_direction.y * (self.radius + attack_range / 2.0)
+
+        rect_width = 0
+        rect_height = 0
+
+        # Determine dimensions based on attack direction
+        # If attack is primarily horizontal, rect is long (range) and has a certain width (e.g., player radius * 1.5)
+        # If attack is primarily vertical, rect is tall (range) and has a certain width.
+        perpendicular_width = self.radius * 1.5 # Width of the swipe/stab
+
+        if abs(norm_direction.x) > abs(norm_direction.y): # More horizontal attack
+            rect_width = attack_range
+            rect_height = perpendicular_width
+        else: # More vertical attack (or perfectly diagonal)
+            rect_width = perpendicular_width
+            rect_height = attack_range
+            
+        # Create the rectangle at its calculated center
+        final_attack_rect = pygame.Rect(0, 0, rect_width, rect_height)
+        final_attack_rect.center = (effective_center_x, effective_center_y)
+        
+        return final_attack_rect

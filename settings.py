@@ -59,3 +59,7 @@ RADAR_MARGIN = 10
 PROJECTILE_WIDTH = 10
 PROJECTILE_HEIGHT = 4
 DEFAULT_PROJECTILE_COLOR = (255, 0, 0) # Red, as requested
+
+# Melee Attack Visuals
+MELEE_VISUAL_DURATION = 100  # milliseconds
+MELEE_ATTACK_COLOR = (255, 0, 0, 150) # Red, slightly transparent for alpha

@@ -2,7 +2,8 @@ import pygame
 from settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, FPS, CAPTION, LIGHT_GRAY,
     RADAR_RADIUS, RADAR_MARGIN, RADAR_BG_COLOR, RADAR_LINE_COLOR,
-    WORLD_ROOM_ROWS, WORLD_ROOM_COLS, ROOM_COLORS, ROOM_WIDTH, ROOM_HEIGHT
+    WORLD_ROOM_ROWS, WORLD_ROOM_COLS, ROOM_COLORS, ROOM_WIDTH, ROOM_HEIGHT,
+    MELEE_VISUAL_DURATION, MELEE_ATTACK_COLOR # Import melee visual settings
 )
 from player import Player
 from room import Room
@@ -38,6 +39,9 @@ class Game:
         # Camera setup (top-left corner of the camera view in world coordinates)
         self.camera_x = 0
         self.camera_y = 0
+
+        # Melee attack visualization
+        self.melee_attack_visuals = [] # List to store (rect, creation_time, color) tuples
 
         # Radar setup
         self.radar_actual_radius = RADAR_RADIUS 
@@ -77,8 +81,20 @@ class Game:
                     self.running = False
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE: 
-                        # Pass both groups to shoot method
-                        self.player.shoot(self.projectiles, self.all_sprites)
+                        # Check weapon type before deciding action
+                        if self.player.weapon.type == "ranged":
+                            self.player.shoot(self.projectiles, self.all_sprites)
+                        elif self.player.weapon.type == "melee":
+                            attack_rect = self.player.melee_attack() # melee_attack now returns the rect
+                            if attack_rect:
+                                current_time = pygame.time.get_ticks()
+                                self.melee_attack_visuals.append((attack_rect, current_time, MELEE_ATTACK_COLOR))
+                    elif event.key == pygame.K_1: # Equip pistol
+                        print("Equipping Pistol")
+                        self.player.equip_weapon("pistol")
+                    elif event.key == pygame.K_2: # Equip knife
+                        print("Equipping Knife")
+                        self.player.equip_weapon("knife")
 
             # Update all sprites (player and projectiles)
             self.all_sprites.update() 
@@ -95,6 +111,22 @@ class Game:
                 screen_x = sprite.rect.x - self.camera_x
                 screen_y = sprite.rect.y - self.camera_y
                 self.screen.blit(sprite.image, (screen_x, screen_y))
+
+            # Draw and manage melee attack visuals
+            current_time = pygame.time.get_ticks()
+            # Iterate over a copy for safe removal
+            for visual in list(self.melee_attack_visuals):
+                rect, creation_time, color = visual
+                if current_time - creation_time > MELEE_VISUAL_DURATION:
+                    self.melee_attack_visuals.remove(visual)
+                else:
+                    # Draw the melee attack rect relative to the camera
+                    # We need a surface for transparency
+                    temp_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+                    temp_surface.fill(color) # Fill with semi-transparent color
+                    screen_rect_x = rect.x - self.camera_x
+                    screen_rect_y = rect.y - self.camera_y
+                    self.screen.blit(temp_surface, (screen_rect_x, screen_rect_y))
             
             self.draw_radar()
             pygame.display.flip() 

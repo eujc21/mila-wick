@@ -1,41 +1,62 @@
 \
 import random
-import pygame # Keep for pygame.math.Vector2 if needed for more complex weapons later
+import pygame 
 from settings import (
-    WEAPON_DAMAGE_MIN, WEAPON_DAMAGE_MAX,
-    WEAPON_FIRE_RATE_MIN, WEAPON_FIRE_RATE_MAX,
-    WEAPON_PROJECTILE_SPEED_MIN, WEAPON_PROJECTILE_SPEED_MAX,
-    PROJECTILE_COLOR_MIN, PROJECTILE_COLOR_MAX
+    # These are no longer strictly needed here if weapons are predefined,
+    # but could be kept for reference or future use if some weapons still use ranges.
+    # WEAPON_DAMAGE_MIN, WEAPON_DAMAGE_MAX, 
+    # WEAPON_FIRE_RATE_MIN, WEAPON_FIRE_RATE_MAX,
+    # WEAPON_PROJECTILE_SPEED_MIN, WEAPON_PROJECTILE_SPEED_MAX,
+    # PROJECTILE_COLOR_MIN, PROJECTILE_COLOR_MAX
+    BLACK # Example color for pistol projectile
 )
 
-prefixes = ["Sharp", "Pointy", "Mighty", "Mega", "Scribble"]
-nouns = ["Pencil", "Crayon", "Fork", "Spoon", "Block"]
-suffixes = ["of Doom", "of Annoyance", "of Justice", "of Naptime"]
+# Predefined weapon data
+WEAPON_DATA = {
+    "pistol": {
+        "name": "Pistol",
+        "damage": 10,
+        "fire_rate": 0.25,  # seconds per shot
+        "projectile_speed": 12,
+        "projectile_color": (128, 128, 128),  # Gray
+        "type": "ranged"
+    },
+    "knife": {
+        "name": "Knife",
+        "damage": 15,
+        "fire_rate": 0.5, # seconds per attack (attack speed)
+        "range": 50, # pixels, effective range of the knife
+        "type": "melee",
+        "projectile_speed": None, # Melee weapons don't have projectile speed
+        "projectile_color": None  # Melee weapons don't have projectile color
+    }
+    # Add more weapons here in the future, e.g.:
+    # "shotgun": {
+    #     "name": "Shotgun",
+    #     "damage": 5, # Per pellet
+    #     "fire_rate": 0.8,
+    #     "projectile_speed": 10,
+    #     "projectile_color": (200, 0, 0),
+    #     "pellets": 5, # Custom attribute for shotgun
+    #     "spread_angle": 20 # Degrees
+    # }
+}
 
 class Weapon:
-    def __init__(self, name, damage, fire_rate, projectile_speed, projectile_color):
+    def __init__(self, name, damage, fire_rate, type, projectile_speed=None, projectile_color=None, **kwargs):
         self.name = name
         self.damage = damage
-        self.fire_rate = fire_rate  # Delay in seconds between shots
+        self.fire_rate = fire_rate # Can be attack speed for melee
+        self.type = type
         self.projectile_speed = projectile_speed
         self.projectile_color = projectile_color
+        # Store any additional weapon-specific attributes like 'range' for melee
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     def __str__(self):
-        return f"Weapon: {self.name}, DMG: {self.damage}, Rate: {self.fire_rate:.2f}, ProjSpeed: {self.projectile_speed}, Color: {self.projectile_color}"
+        attrs = [f"{key}: {getattr(self, key)}" for key in vars(self) if key != 'name']
+        return f"Weapon: {self.name} ({', '.join(attrs)})"
 
-def generate_weapon():
-    name = f"{random.choice(prefixes)} {random.choice(nouns)} {random.choice(suffixes)}"
-    damage = random.randint(WEAPON_DAMAGE_MIN, WEAPON_DAMAGE_MAX)
-    fire_rate = random.uniform(WEAPON_FIRE_RATE_MIN, WEAPON_FIRE_RATE_MAX)
-    projectile_speed = random.randint(WEAPON_PROJECTILE_SPEED_MIN, WEAPON_PROJECTILE_SPEED_MAX)
-    projectile_color = (
-        random.randint(PROJECTILE_COLOR_MIN, PROJECTILE_COLOR_MAX),
-        random.randint(PROJECTILE_COLOR_MIN, PROJECTILE_COLOR_MAX),
-        random.randint(PROJECTILE_COLOR_MIN, PROJECTILE_COLOR_MAX)
-    )
-    return Weapon(name, damage, fire_rate, projectile_speed, projectile_color)
-
-if __name__ == '__main__':
-    # For testing weapon generation
-    for _ in range(5):
-        print(generate_weapon())
+# Removed generate_weapon() function and related lists (prefixes, nouns, suffixes)
+# Removed if __name__ == '__main__' block for generate_weapon testing
