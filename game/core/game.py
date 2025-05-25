@@ -254,38 +254,35 @@ class Game:
             for room in self.rooms:
                 room.draw(self.screen, self.camera.x, self.camera.y) # Use camera object's x, y
             
-            # Draw NPC patrol areas and health bars using camera object's x, y
-            for npc_sprite in self.entity_manager.npcs: # Use entity_manager group
+            # Draw NPC patrol paths and health bars using camera object's x, y
+            for npc_sprite in self.entity_manager.npcs:  # Use entity_manager group
                 if not npc_sprite.is_following_player:
-                    patrol_rect_world = pygame.Rect(
-                        npc_sprite.patrol_limit_left, 
-                        npc_sprite.rect.top,
-                        npc_sprite.patrol_limit_right - npc_sprite.patrol_limit_left, 
-                        npc_sprite.rect.height
-                    )
-                    # Use camera.x for offset
-                    patrol_rect_screen_x = patrol_rect_world.x - self.camera.x 
-                    patrol_rect_screen_y = patrol_rect_world.y - self.camera.y
-                    pygame.draw.rect(self.screen, (255, 255, 0, 100), 
-                                     (patrol_rect_screen_x, patrol_rect_screen_y, patrol_rect_world.width, patrol_rect_world.height), 1)
+                    # Draw a line between every pair of waypoints (all possible connections)
+                    points = [(x - self.camera.x, y - self.camera.y) for (x, y) in npc_sprite.patrol_points]
+                    for i in range(len(points)):
+                        for j in range(i + 1, len(points)):
+                            pygame.draw.line(self.screen, (255, 165, 0), points[i], points[j], 1)
+                    # Draw small circles at each waypoint for visibility
+                    for px, py in points:
+                        pygame.draw.circle(self.screen, (255, 165, 0), (int(px), int(py)), 5, 1)
 
                 if npc_sprite.is_following_player and npc_sprite.health > 0:
                     HEALTH_BAR_HEIGHT = 5
                     HEALTH_BAR_Y_OFFSET = 10
                     health_percentage = npc_sprite.health / npc_sprite.max_health
-                    
+
                     bg_bar_width = npc_sprite.rect.width
                     bg_bar_x_world = npc_sprite.rect.x
                     bg_bar_y_world = npc_sprite.rect.top - HEALTH_BAR_Y_OFFSET
                     # Use camera.x, camera.y for offset
                     bg_bar_screen_x = bg_bar_x_world - self.camera.x
                     bg_bar_screen_y = bg_bar_y_world - self.camera.y
-                    pygame.draw.rect(self.screen, (255, 0, 0), 
-                                     (bg_bar_screen_x, bg_bar_screen_y, bg_bar_width, HEALTH_BAR_HEIGHT))
+                    pygame.draw.rect(self.screen, (255, 0, 0),
+                                    (bg_bar_screen_x, bg_bar_screen_y, bg_bar_width, HEALTH_BAR_HEIGHT))
 
                     fg_bar_width = bg_bar_width * health_percentage
-                    pygame.draw.rect(self.screen, (0, 255, 0), 
-                                     (bg_bar_screen_x, bg_bar_screen_y, fg_bar_width, HEALTH_BAR_HEIGHT))
+                    pygame.draw.rect(self.screen, (0, 255, 0),
+                                    (bg_bar_screen_x, bg_bar_screen_y, fg_bar_width, HEALTH_BAR_HEIGHT))
 
             # Draw all entities using camera.apply()
             for sprite in self.entity_manager.entities: # Use entity_manager group
