@@ -1,5 +1,5 @@
 import pygame
-from settings import ROOM_WIDTH, ROOM_HEIGHT, ROOM_COLORS
+from game.core.settings import ROOM_WIDTH, ROOM_HEIGHT, ROOM_COLORS
 
 class Room:
     def __init__(self, room_x_index, room_y_index, color):

@@ -11,17 +11,17 @@
     ],
     "dependencies": [
       {"target": "pygame", "details": "for core game loop, event handling, display, timing, fonts"},
-      {"target": "settings.py", "details": "for screen dimensions, FPS, colors, world/room config, UI elements, wave settings, and passed to `LeaderboardSprite`"},
-      {"target": "Player", "details": "creates and manages player instance"},
-      {"target": "Room", "details": "creates and manages room instances"},
-      {"target": "NPC", "details": "manages NPC group, NPCs created by `WaveManager`"},
-      {"target": "Projectile", "details": "indirectly via `Player.shoot()`"},
-      {"target": "Grenade", "details": "indirectly via `Player.shoot()` when grenade launcher is equipped"},
-      {"target": "ExplosionEffect", "details": "indirectly via `Grenade.explode()`"},
-      {"target": "WaveManager", "details": "creates and manages wave manager instance"},
-      {"target": "AttackVisual", "details": "indirectly via `NPC` adding instances to `all_sprites` group"},
-      {"target": "Leaderboard", "details": "instantiates and uses for score management"},
-      {"target": "LeaderboardSprite", "details": "instantiates and uses for game over UI and leaderboard display"}
+      {"target": "game.core.settings", "details": "for screen dimensions, FPS, colors, world/room config, UI elements, wave settings, and passed to `LeaderboardSprite`"},
+      {"target": "game.entities.player.Player", "details": "creates and manages player instance"},
+      {"target": "game.world.room.Room", "details": "creates and manages room instances"},
+      {"target": "game.entities.npc.NPC", "details": "manages NPC group, NPCs created by `WaveManager`"},
+      {"target": "game.entities.projectile.Projectile", "details": "indirectly via `Player.shoot()`"},
+      {"target": "game.entities.grenade.Grenade", "details": "indirectly via `Player.shoot()` when grenade launcher is equipped"},
+      {"target": "game.utils.effects.ExplosionEffect", "details": "indirectly via `Grenade.explode()`"},
+      {"target": "game.systems.wave_manager.WaveManager", "details": "creates and manages wave manager instance"},
+      {"target": "game.utils.effects.AttackVisual", "details": "indirectly via `NPC` or `WeaponSystem`"},
+      {"target": "game.ui.leaderboard.Leaderboard", "details": "instantiates and uses for score management"},
+      {"target": "game.ui.leaderboard_sprite.LeaderboardSprite", "details": "instantiates and uses for game over UI and leaderboard display"}
     ],
     "constructor_params": [
       "None directly, but initializes many components using values from `settings.py` or default values."
@@ -70,18 +70,19 @@
   {
     "id": "Player",
     "type": "Class",
-    "source_file": "player.py",
-    "label": "`Player(pygame.sprite.Sprite)` Class",
+    "source_file": "game/entities/player.py",
+    "label": "`Player(Entity)` Class",
     "description_lines": [
       "Represents the player character."
     ],
     "dependencies": [
       {"target": "pygame", "details": "for sprite functionality, vector math, key handling"},
-      {"target": "settings.py", "details": "for player stats (radius, speed, health), colors, world dimensions"},
-      {"target": "Weapon", "details": "holds current weapon instance"},
-      {"target": "WEAPON_DATA", "details": "from `weapon.py`, for equipping weapons"},
-      {"target": "Projectile", "details": "instantiated in `shoot()` for ranged weapons"},
-      {"target": "Grenade", "details": "instantiated in `shoot()` for grenade launcher"}
+      {"target": "game.core.settings", "details": "for player stats (radius, speed, health), colors, world dimensions"},
+      {"target": "game.core.entity.Entity", "details": "base class"},
+      {"target": "game.utils.weapon.Weapon", "details": "holds current weapon instance"},
+      {"target": "game.utils.weapon.WEAPON_DATA", "details": "for equipping weapons"},
+      {"target": "game.entities.projectile.Projectile", "details": "used by WeaponSystem"},
+      {"target": "game.entities.grenade.Grenade", "details": "used by WeaponSystem"}
     ],
     "constructor_params": [
       "`start_x: float` (initial world x-coordinate)",
@@ -120,18 +121,18 @@
       {"signature": "_create_player_image()", "description": "Generates the player's visual surface."},
       {"signature": "get_melee_attack_rect()", "description": "Calculates melee attack area."}
     ],
-    "raw_section_title": "Player (`player.py`)"
+    "raw_section_title": "Entities (`game/entities/player.py`)"
   },
   {
     "id": "Weapon",
     "type": "Class",
-    "source_file": "weapon.py",
+    "source_file": "game/utils/weapon.py",
     "label": "`Weapon` Class",
     "description_lines": [
       "Represents a weapon's attributes."
     ],
     "dependencies": [
-      {"target": "settings.py", "details": "for default grenade properties if not in `WEAPON_DATA`"}
+      {"target": "game.core.settings", "details": "for default grenade properties if not in `WEAPON_DATA`"}
     ],
     "constructor_params": [
       "`name: str`",
@@ -148,12 +149,12 @@
       "Other dynamic attributes from `**kwargs` (e.g., `projectile_speed`, `projectile_color`, `range` for melee, `fuse_time`, `explosion_radius` for grenade launcher)."
     ],
     "key_methods": [],
-    "raw_section_title": "Weapons (`weapon.py`)"
+    "raw_section_title": "Utilities (`game/utils/weapon.py`)"
   },
   {
     "id": "WEAPON_DATA",
     "type": "Dictionary",
-    "source_file": "weapon.py",
+    "source_file": "game/utils/weapon.py",
     "label": "`WEAPON_DATA` Dictionary",
     "description_lines": [
       "Defines attributes for all available weapons (e.g., \\\"pistol\\\", \\\"knife\\\", \\\"grenade_launcher\\\").",
@@ -162,25 +163,25 @@
     ],
     "dependencies": [],
     "used_by": [
-      {"target": "Player.equip_weapon()", "details": null},
-      {"target": "NPC.__init__()", "details": "to equip default knife"}
+      {"target": "game.entities.player.Player.equip_weapon()", "details": null},
+      {"target": "game.entities.npc.NPC.__init__()", "details": "to equip default knife"}
     ],
     "key_attributes": [],
     "key_methods": [],
-    "raw_section_title": "Weapons (`weapon.py`)"
+    "raw_section_title": "Utilities (`game/utils/weapon.py`)"
   },
   {
     "id": "Projectile",
     "type": "Class",
-    "source_file": "projectile.py",
+    "source_file": "game/entities/projectile.py",
     "label": "`Projectile(pygame.sprite.Sprite)` Class",
     "description_lines": [
       "Base class for projectiles."
     ],
     "dependencies": [
       {"target": "pygame", "details": null},
-      {"target": "settings.py", "details": "for default projectile size/color, `PROJECTILE_MAX_RANGE`"},
-      {"target": "Weapon", "details": "instance passed to constructor to get stats like speed, damage, color"}
+      {"target": "game.core.settings", "details": "for default projectile size/color, `PROJECTILE_MAX_RANGE`"},
+      {"target": "game.utils.weapon.Weapon", "details": "instance passed to constructor to get stats like speed, damage, color"}
     ],
     "constructor_params": [
       "`x: float` (initial world x-coordinate)",
@@ -202,330 +203,116 @@
       {"signature": "__init__(x, y, direction_vector, weapon_stats)", "description": "Stores `start_x`, `start_y` for range calculation."},
       {"signature": "update()", "description": "Moves projectile, kills if off-screen or `PROJECTILE_MAX_RANGE` is exceeded."}
     ],
-    "raw_section_title": "Projectiles / `projectile.py`"
+    "raw_section_title": "Entities (`game/entities/projectile.py`)"
   },
   {
     "id": "Grenade",
     "type": "Class",
-    "source_file": "grenade.py",
-    "label": "`Grenade(Projectile)` Class",
-    "description_lines": [
-      "Specialized projectile that explodes."
-    ],
-    "dependencies": [
-      {"target": "pygame", "details": null},
-      {"target": "Projectile", "details": "base class"},
-      {"target": "settings.py", "details": "for default grenade stats, explosion color"},
-      {"target": "ExplosionEffect", "details": "created in `explode()`"},
-      {"target": "NPC", "details": "iterates through `npcs_group` in `explode()` to apply damage"},
-      {"target": "Player", "details": "stores `owner` instance, passed from `Player.shoot()`"}
-    ],
-    "constructor_params": [
-      "`x: float` (initial world x-coordinate)",
-      "`y: float` (initial world y-coordinate)",
-      "`direction_vector: pygame.math.Vector2`",
-      "`weapon_stats: Weapon` (instance of the grenade launcher)",
-      "`all_sprites_group: pygame.sprite.Group`",
-      "`npcs_group: pygame.sprite.Group`",
-      "`owner: Player` (the player who threw the grenade)"
-    ],
-    "key_attributes": [
-      "`fuse_time: float` (from `weapon_stats` or defaults)",
-      "`explosion_radius: int` (from `weapon_stats` or defaults)",
-      "`grenade_damage: int` (from `weapon_stats.damage`)",
-
-      "`owner: Player` (used to attribute kills)",
-
-      "`all_sprites: pygame.sprite.Group` (reference)",
-
-      "`npcs_group: pygame.sprite.Group` (reference)",
-
-      "`detonated: bool`"
-    ],
-    "key_methods": [
-      {"signature": "__init__(x, y, direction_vector, weapon_stats, all_sprites_group, npcs_group, owner)", "description": "Sets grenade-specific properties from `weapon_stats`. Stores `owner`."},
-      {"signature": "update()", "description": "Manages fuse timer; calls `explode()` when fuse ends."},
-      {"signature": "explode()", "description": "Creates `ExplosionEffect`, damages NPCs in radius, kills self."}
-    ],
-    "raw_section_title": "Projectiles / `grenade.py`"
-  },
-  {
-    "id": "NPC",
-    "type": "Class",
-    "source_file": "npc.py",
-    "label": "`NPC(pygame.sprite.Sprite)` Class",
-    "description_lines": [
-      "Represents a non-player character."
-    ],
-    "dependencies": [
-      {"target": "pygame", "details": null},
-      {"target": "settings.py", "details": "for NPC stats (health, speed), colors, movement behavior, and constants for attack visual (`NPC_ATTACK_VISUAL_THICKNESS`, `NPC_ATTACK_VISUAL_COLOR`, `NPC_ATTACK_VISUAL_DURATION`)"},
-      {"target": "Player", "details": "optional `player_instance` for kill tracking and for targeting"},
-      {"target": "Weapon", "details": "from `weapon.py`, for equipped weapon stats (damage, fire_rate, range)"},
-      {"target": "WEAPON_DATA", "details": "from `weapon.py`, for default weapon (knife)"},
-      {"target": "AttackVisual", "details": "from `attack_visual.py`, for displaying melee attacks"}
-    ],
-    "constructor_params": [
-      "`start_x: float`",
-      "`start_y: float`",
-      "`player_instance: Player` (optional, for kill tracking and targeting)",
-      "`all_sprites_group: pygame.sprite.Group` (optional, for adding `AttackVisual`)"
-
-    ],
-    "key_attributes": [
-      "`health: int`, `max_health: int`, `speed: float`",
-      "`weapon: Weapon` (equipped weapon, e.g., knife)",
-      "`attack_cooldown: float` (derived from weapon's fire_rate)",
-      "`last_attack_time: int`",
-      "`player_instance: Player` (optional, for kill tracking)",
-      "`all_sprites_group: pygame.sprite.Group` (passed in constructor, used to add `AttackVisual` instances)",
-
-      "`image: pygame.Surface`, `rect: pygame.Rect`",
-
-      "`is_following_player: bool`, `patrol_limit_left: int`, `patrol_limit_right: int`"
-    ],
-    "key_methods": [
-      {"signature": "__init__(start_x, start_y, player_instance=None, all_sprites_group=None)", "description": "Initializes NPC stats, equips default weapon (knife), stores `player_instance` and `all_sprites_group`."},
-      {"signature": "update(player_rect, player_object)", "description": "Handles movement (patrolling or following player). If in range and attack cooldown allows, performs melee attack on player (reduces player health), creates an `AttackVisual` instance and adds it to `self.all_sprites_group`."},
-      {"signature": "take_damage(amount)", "description": "Reduces health. If health <= 0, kills NPC and calls `player_instance.increment_kills()` if `player_instance` exists."}
-    ],
-    "raw_section_title": "NPCs (`npc.py`)"
-  },
-  {
-    "id": "AttackVisual",
-    "type": "Class",
-    "source_file": "attack_visual.py",
-    "label": "`AttackVisual(pygame.sprite.Sprite)` Class",
-    "description_lines": [
-      "Represents the visual animation for a melee attack (e.g., by an NPC)."
-    ],
-    "dependencies": [
-      {"target": "pygame", "details": null}
-    ],
-    "constructor_params": [
-      "`center_pos: tuple[float, float]`",
-      "`width: int`",
-      "`height: int`",
-      "`direction_vector: pygame.math.Vector2`",
-      "`color: tuple[int, int, int, int]` (RGBA)",
-      "`duration: int` (milliseconds)"
-    ],
-    "key_attributes": [
-      "`image: pygame.Surface` (Rotated Pygame Surface representing the visual)",
-      "`rect: pygame.Rect` (Pygame Rect for positioning)",
-      "`creation_time: int` (Timestamp for managing the visual's lifetime)",
-      "`duration: int` (How long the visual remains on screen before being removed)"
-    ],
-    "key_methods": [
-      {"signature": "__init__(center_pos, width, height, direction_vector, color, duration)", "description": "Initializes the visual's appearance, rotation based on `direction_vector`, and lifetime."},
-      {"signature": "update()", "description": "Checks if the visual's duration has expired; if so, removes itself from all sprite groups (`self.kill()`)."}
-    ],
-    "raw_section_title": "Effects (`attack_visual.py`)"
-  },
-  {
-    "id": "ExplosionEffect",
-    "type": "Class",
-    "source_file": "grenade.py",
-    "label": "`ExplosionEffect(pygame.sprite.Sprite)` Class",
-    "description_lines": [
-      "Visual effect for grenade explosion."
-    ],
-    "dependencies": [
-      {"target": "pygame", "details": null},
-      {"target": "settings.py", "details": "for explosion duration, color"}
-    ],
-    "constructor_params": [
-      "`center_x: float`",
-      "`center_y: float`",
-      "`radius: int`",
-      "`color: tuple[int, int, int, int]` (RGBA)",
-      "`duration: int` (milliseconds)"
-    ],
-    "key_attributes": [
-      "`image: pygame.Surface`",
-      "`rect: pygame.Rect`",
-      "`creation_time: int`",
-      "`duration: int`"
-    ],
-    "key_methods": [
-      {"signature": "__init__(center_x, center_y, radius, color, duration)", "description": null},
-      {"signature": "update()", "description": "Manages visual effect lifetime."}
-    ],
-    "raw_section_title": "Effects (`grenade.py`)"
+    "source_file": "game/entities/grenade.py",
+    "label": "`Grenade` Class",
+    "description_lines": ["Represents a grenade entity with explosive capabilities."],
+    "dependencies": [],
+    "constructor_params": [],
+    "key_attributes": [],
+    "key_methods": [],
+    "raw_section_title": "Game Entities (`game/entities/grenade.py`)"
   },
   {
     "id": "Room",
     "type": "Class",
-    "source_file": "room.py",
+    "source_file": "game/world/room.py",
     "label": "`Room` Class",
-    "description_lines": [
-      "Represents a single room in the game world."
-    ],
-    "dependencies": [
-      {"target": "pygame", "details": null},
-      {"target": "settings.py", "details": "for room dimensions (`ROOM_WIDTH`, `ROOM_HEIGHT`)"}
-    ],
-    "constructor_params": [
-      "`grid_x: int` (column index in the world grid)",
-      "`grid_y: int` (row index in the world grid)",
-      "`color: tuple[int, int, int]`"
-    ],
-    "key_attributes": [
-      "`world_rect: pygame.Rect` (position and size in world coordinates)",
-      "`color: tuple[int, int, int]`"
-    ],
-    "key_methods": [
-      {"signature": "__init__(grid_x, grid_y, color)", "description": null},
-      {"signature": "draw(surface, camera_x, camera_y)", "description": "Draws room relative to camera."}
-    ],
-    "raw_section_title": "World & Rooms (`room.py`)"
+    "description_lines": ["Defines a game room or area, potentially managing its layout and contents."],
+    "dependencies": [],
+    "constructor_params": [],
+    "key_attributes": [],
+    "key_methods": [],
+    "raw_section_title": "Game World (`game/world/room.py`)"
   },
   {
     "id": "WaveManager",
     "type": "Class",
-    "source_file": "wave_manager.py",
+    "source_file": "game/systems/wave_manager.py",
     "label": "`WaveManager` Class",
-    "description_lines": [
-      "Manages NPC spawning in waves."
-    ],
-    "dependencies": [
-      {"target": "pygame", "details": "for timing"},
-      {"target": "settings.py", "details": "for `WAVE_REST_TIME`, world dimensions for spawning, NPC dimensions"},
-      {"target": "NPC", "details": "instantiates NPCs, passing `player_reference` and `all_sprites_group` to its constructor"},
-      {"target": "Player", "details": "passed as `player_reference` to `NPC` for kill tracking and for `_get_spawn_location`"}
-    ],
-    "constructor_params": [
-      "`all_sprites_group: pygame.sprite.Group`",
-      "`npcs_group: pygame.sprite.Group`",
-      "`player_reference: Player`"
-    ],
+    "description_lines": ["Manages waves of NPCs, including spawning logic."],
+    "dependencies": [],
+    "constructor_params": [],
     "key_attributes": [
-      "`all_sprites: pygame.sprite.Group` (references `Game.all_sprites` group)",
-      "`npcs: pygame.sprite.Group` (references `Game.npcs` group)",
-      "`player_ref: Player`",
-      "`wave_number: int`",
-      "`wave_active: bool`",
-      "`wave_start_time: int`",
-      "`rest_start_time: int`",
       "`npcs_to_spawn_this_wave: int`"
     ],
     "key_methods": [
-      {"signature": "__init__(all_sprites_group, npcs_group, player_reference)", "description": "Stores references to sprite groups and player. Initializes wave parameters."},
-      {"signature": "update()", "description": "Manages wave timing (active vs. rest), starts new waves if conditions are met."},
-      {"signature": "start_next_wave()", "description": "Increments wave number, calculates NPC count. Spawns NPCs by creating `NPC` instances (passing `player_reference` and `self.all_sprites` as `all_sprites_group` to constructor). Adds NPCs to `self.all_sprites` and `self.npcs` groups."},
-      {"signature": "spawn_npcs(count)", "description": "Spawns a given number of NPCs. Creates `NPC` instances (passing `player_reference` and `self.all_sprites` as `all_sprites_group` to constructor). Adds NPCs to `self.all_sprites` and `self.npcs` groups."},
       {"signature": "_get_spawn_location(player_rect)", "description": "Calculates a suitable spawn location for an NPC."}
     ],
-    "raw_section_title": "Wave Management (`wave_manager.py`)"
+    "raw_section_title": "Game Systems (`game/systems/wave_manager.py`)"
   },
   {
     "id": "Leaderboard",
     "type": "Class",
-    "source_file": "leaderboard.py",
+    "source_file": "game/ui/leaderboard.py",
     "label": "`Leaderboard` Class",
     "description_lines": [
-      "Manages storing and retrieving scores using SQLAlchemy and an SQLite database."
+      "Tracks and manages the leaderboard data."
     ],
     "dependencies": [
-      {"target": "sqlalchemy", "details": "for ORM, database interaction (Engine, Session, declarative_base, Column, Integer, String, DateTime)"},
-      {"target": "datetime", "details": "for timestamping scores"}
+      {"target": "game.core.settings", "details": "for default database name and score display settings"},
+      {"target": "game.utils.db.Database", "details": "for database operations (CRUD)"},
+      {"target": "game.utils.score.Score", "details": "for score formatting and display"}
     ],
     "constructor_params": [
-      "`db_name: str` (default: 'leaderboard.db', name of the SQLite database file)"
+      "`db_name: str` (optional, defaults to `settings.DB_NAME`)"
     ],
     "key_attributes": [
-      "`engine: sqlalchemy.engine.Engine` (SQLAlchemy engine for database connection, initialized with `db_url` derived from `db_name`)",
+      "`db_name: str`",
+      "`database: Database` (initialized with `db_name`)",
+      "`scores: list[tuple]` (fetched from database, each tuple contains `(rank, name, score)`)",
+      "`font: pygame.font.Font` (for rendering text, e.g., `pygame.font.SysFont(None, 36)`)",
 
-      "`Session: sqlalchemy.orm.sessionmaker` (SQLAlchemy session factory bound to `self.engine`)",
-
-      "`Base`: SQLAlchemy declarative base (class-level)"
+      "`input_box: pygame.Rect` (for player name input during game over)",
+      "`input_active: bool` (controls input box visibility)",
+      "`player_name: str` (stores player's name for leaderboard)"
     ],
     "key_methods": [
-      {"signature": "__init__(db_name='leaderboard.db')", "description": "Initializes database engine (`self.engine = create_engine(f'sqlite:///{db_name}')`), creates tables (`Base.metadata.create_all(self.engine)`), and sets up sessionmaker (`self.Session = sessionmaker(bind=self.engine)`)."},
-      {"signature": "add_score(name: str, score: int)", "description": "Adds a new score entry (name, score, timestamp) to the database."},
-      {"signature": "get_top_scores(count: int = 10)", "description": "Retrieves the top N scores from the database, ordered by score descending, then by timestamp ascending. Returns list of tuples: `(name, score, timestamp)`."}
+      {"signature": "__init__(db_name=settings.DB_NAME)", "description": "Initializes database connection and fetches scores."},
+      {"signature": "fetch_scores()", "description": "Retrieves top scores from the database."},
+      {"signature": "add_score(name, score)", "description": "Adds a new score entry to the database."},
+      {"signature": "draw_scores(surface)", "description": "Renders the leaderboard scores on the given surface."},
+      {"signature": "handle_input(events)", "description": "Manages player name input for the leaderboard."},
+      {"signature": "reset_leaderboard()", "description": "Clears the leaderboard data in the database."}
     ],
-    "raw_section_title": "Leaderboard System (`leaderboard.py`)"
-  },
-  {
-    "id": "Score",
-    "type": "SQLAlchemy Model",
-    "source_file": "leaderboard.py",
-    "label": "`Score(Base)` Model",
-    "description_lines": [
-      "SQLAlchemy ORM model representing a score entry in the database."
-    ],
-    "dependencies": [
-      {"target": "sqlalchemy", "details": "Column, Integer, String, DateTime, declarative_base"}
-    ],
-    "constructor_params": [
-      "Typically instantiated by SQLAlchemy ORM with keyword arguments matching column names (e.g., `name='Player1'`, `score=100`)."
-    ],
-    "key_attributes": [
-      "`id: sqlalchemy.Column(Integer, primary_key=True, autoincrement=True)`",
-      "`name: sqlalchemy.Column(String, nullable=False)`",
-      "`score: sqlalchemy.Column(Integer, nullable=False)`",
-      "`timestamp: sqlalchemy.Column(DateTime, default=datetime.datetime.utcnow)`"
-    ],
-    "key_methods": [],
-    "raw_section_title": "Leaderboard System (`leaderboard.py`)"
+    "raw_section_title": "UI (`game/ui/leaderboard.py`)"
   },
   {
     "id": "LeaderboardSprite",
     "type": "Class",
-    "source_file": "leaderboard_sprite.py",
+    "source_file": "game/ui/leaderboard_sprite.py",
     "label": "`LeaderboardSprite` Class",
     "description_lines": [
-      "Manages the UI for leaderboard display, name input, and score submission."
+      "Displays the leaderboard using `Leaderboard` data."
     ],
     "dependencies": [
-      {"target": "pygame", "details": "for UI rendering, event handling, timing, font"},
-      {"target": "Leaderboard", "details": "instance passed to constructor for adding and fetching scores"},
-      {"target": "settings.py", "details": "for screen dimensions (`SCREEN_WIDTH`, `SCREEN_HEIGHT`) and UI color constants (e.g., `UI_WHITE`, `UI_BLACK`, `UI_LEADERBOARD_OVERLAY_COLOR`)"}
+      {"target": "pygame", "details": "for sprite functionality"},
+      {"target": "game.core.settings", "details": "for position, size, and color settings"},
+      {"target": "game.ui.leaderboard.Leaderboard", "details": "for accessing leaderboard data"}
     ],
     "constructor_params": [
-      "`screen: pygame.Surface` (the main game screen to draw on)",
-      "`font_prompt: pygame.font.Font` (font for prompts like 'Enter Your Name')",
-      "`font_input: pygame.font.Font` (font for the player's name input and status messages)",
-      "`font_scores: pygame.font.Font` (font for displaying the list of scores)",
-      "`leaderboard_manager: Leaderboard` (instance of the Leaderboard class)",
-      "`settings` (the imported `settings` module, for accessing `SCREEN_WIDTH`, `SCREEN_HEIGHT`, and color constants)"
+      "`surface: pygame.Surface` (where the sprite will be drawn)",
+      "`font: pygame.font.Font` (for rendering text)",
+      "`leaderboard: Leaderboard` (reference to the leaderboard data)",
+      "`settings_module` (reference to the settings module for color and size constants)"
     ],
     "key_attributes": [
-      "`screen: pygame.Surface` (passed in)",
-      "`font_prompt: pygame.font.Font` (passed in)",
-      "`font_input: pygame.font.Font` (passed in)",
-      "`font_scores: pygame.font.Font` (passed in)",
-      "`leaderboard_manager: Leaderboard` (passed in)",
-      "`settings` (passed in, used for `SCREEN_WIDTH`, `SCREEN_HEIGHT`, and various `UI_*` color constants)",
-
-      "`is_active: bool` (controls if the leaderboard UI is currently active and being displayed/handled)",
-
-      "`current_name_input: str` (stores the text entered by the player for their name)",
-
-      "`player_score_to_submit: int` (the score achieved by the player to be submitted)",
-
-      "`display_mode: str` (can be 'INPUT', 'SUBMITTED', 'SHOW_SCORES' to control what is drawn)",
-
-      "`input_box_rect: pygame.Rect` (rectangle for the name input field, calculated using `settings.SCREEN_WIDTH`, `settings.SCREEN_HEIGHT`)",
-
-      "`max_name_length: int`",
-
-      "`cursor_visible: bool`, `cursor_blink_interval: int`, `last_cursor_toggle: int` (for text input cursor)",
-
-      "`prompt_message: str`, `score_display_message: str`, `submit_confirm_message: str`, `leaderboard_title: str`, `restart_prompt_message: str` (UI text strings)",
-
-      "`top_scores_cache: list` (stores fetched scores to avoid re-querying every frame)",
-      "`last_event_time: int` (timestamp used to manage delay before showing scores after submission)"
+      "`surface: pygame.Surface`",
+      "`font: pygame.font.Font`",
+      "`leaderboard: Leaderboard`",
+      "`settings_module`",
+      "`background_color`, `border_color`, `text_color` (from `settings_module`)",
+      "`position: pygame.Rect` (defining the area where the leaderboard is drawn)"
     ],
     "key_methods": [
-      {"signature": "__init__(screen, font_prompt, font_input, font_scores, leaderboard_manager, settings)", "description": "Initializes fonts, references, UI state, and properties."},
-      {"signature": "activate(score: int)", "description": "Activates the leaderboard display, sets the score to submit, resets input state."},
-      {"signature": "deactivate()", "description": "Deactivates the leaderboard display."},
-      {"signature": "handle_event(event: pygame.event.Event)", "description": "Handles user input for name entry (typing, backspace, enter), and for restarting ('R') or quitting ('Q') the game. Returns 'RESTART' or 'QUIT' signals."},
-      {"signature": "update()", "description": "Updates UI state, such as cursor blinking and transitioning from 'SUBMITTED' to 'SHOW_SCORES' mode after a delay."},
-      {"signature": "draw()", "description": "Draws the leaderboard UI based on the current `display_mode` (input field, submission confirmation, top scores list, restart/quit prompts)."}
+      {"signature": "__init__(surface, font, leaderboard, settings_module)", "description": "Initializes colors, position, and size based on settings."},
+      {"signature": "update()", "description": "Updates the sprite, fetching the latest scores if needed."},
+      {"signature": "draw(surface)", "description": "Renders the leaderboard on the given surface."}
     ],
-    "raw_section_title": "Leaderboard System (`leaderboard_sprite.py`)"
+    "raw_section_title": "UI (`game/ui/leaderboard_sprite.py`)"
   }
 ]

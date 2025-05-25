@@ -2,7 +2,10 @@
 Defines the Item class and its derivatives, like HealthPack.
 '''
 import pygame
-from settings import ITEM_SIZE, HEALTH_PACK_COLOR, HEALTH_PACK_VALUE, BLACK # Assuming BLACK is for text or outlines
+# Import settings from the correct path
+from game.core.settings import ITEM_SIZE, HEALTH_PACK_COLOR, HEALTH_PACK_VALUE, BLACK # Assuming BLACK is for text or outlines
+
+from game.core.entity import Entity # Corrected import for Entity
 
 class Item(pygame.sprite.Sprite):
     def __init__(self, x, y, item_type, image=None, value=None):

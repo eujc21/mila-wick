@@ -1,9 +1,12 @@
 import pygame
-from settings import PROJECTILE_WIDTH, PROJECTILE_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, PROJECTILE_MAX_RANGE
+# Import settings from the correct path
+from game.core.settings import PROJECTILE_WIDTH, PROJECTILE_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, PROJECTILE_MAX_RANGE, DEFAULT_PROJECTILE_COLOR
 
-class Projectile(pygame.sprite.Sprite):
+from game.core.entity import Entity # Corrected import for Entity
+
+class Projectile(Entity): # Inherit from Entity
     def __init__(self, x, y, direction_vector, weapon_stats): # weapon_stats is a Weapon object
-        super().__init__()
+        super().__init__(x=x, y=y, health=1) # Call Entity's __init__ with nominal health
         # Directly access attributes from the Weapon object
         self.color = weapon_stats.projectile_color 
         self.speed = weapon_stats.projectile_speed
