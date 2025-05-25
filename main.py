@@ -3,7 +3,11 @@ from settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, FPS, CAPTION, LIGHT_GRAY,
     RADAR_RADIUS, RADAR_MARGIN, RADAR_BG_COLOR, RADAR_LINE_COLOR,
     WORLD_ROOM_ROWS, WORLD_ROOM_COLS, ROOM_COLORS, ROOM_WIDTH, ROOM_HEIGHT,
-    MELEE_VISUAL_DURATION, MELEE_ATTACK_COLOR, BLACK # Added BLACK here
+    WORLD_WIDTH, WORLD_HEIGHT, # Make sure these are imported
+    MELEE_VISUAL_DURATION, MELEE_ATTACK_COLOR, BLACK, # Added BLACK here
+    # Import minimap settings
+    MINIMAP_WIDTH, MINIMAP_HEIGHT, MINIMAP_MARGIN, MINIMAP_BG_COLOR,
+    MINIMAP_ROOM_COLOR, MINIMAP_PLAYER_COLOR, MINIMAP_BORDER_COLOR
 )
 from player import Player
 from room import Room
@@ -101,6 +105,41 @@ class Game:
         self.screen.blit(weapon_surface, (10, 10))
         self.screen.blit(health_surface, (10, 10 + weapon_surface.get_height() + 5))
 
+    def draw_minimap(self):
+        """Draws a minimap on the bottom-right of the screen."""
+        map_x = SCREEN_WIDTH - MINIMAP_WIDTH - MINIMAP_MARGIN
+        map_y = SCREEN_HEIGHT - MINIMAP_HEIGHT - MINIMAP_MARGIN
+
+        minimap_surface = pygame.Surface((MINIMAP_WIDTH, MINIMAP_HEIGHT), pygame.SRCALPHA)
+        minimap_surface.fill(MINIMAP_BG_COLOR)
+
+        # Calculate scaling factors for the entire world
+        scale_x = MINIMAP_WIDTH / WORLD_WIDTH
+        scale_y = MINIMAP_HEIGHT / WORLD_HEIGHT
+
+        # Draw rooms on the minimap
+        for room in self.rooms:
+            # Calculate room position and size on the minimap
+            mini_room_x = room.world_rect.x * scale_x
+            mini_room_y = room.world_rect.y * scale_y
+            mini_room_width = room.world_rect.width * scale_x
+            mini_room_height = room.world_rect.height * scale_y
+            
+            pygame.draw.rect(minimap_surface, MINIMAP_ROOM_COLOR, 
+                             (mini_room_x, mini_room_y, mini_room_width, mini_room_height))
+            pygame.draw.rect(minimap_surface, MINIMAP_BORDER_COLOR, # Room borders
+                             (mini_room_x, mini_room_y, mini_room_width, mini_room_height), 1)
+
+        # Draw player on the minimap
+        player_mini_x = self.player.rect.centerx * scale_x
+        player_mini_y = self.player.rect.centery * scale_y
+        pygame.draw.circle(minimap_surface, MINIMAP_PLAYER_COLOR, 
+                           (int(player_mini_x), int(player_mini_y)), 3) # Player dot size 3
+
+        # Draw border for the minimap itself
+        pygame.draw.rect(self.screen, MINIMAP_BORDER_COLOR, (map_x -1, map_y -1, MINIMAP_WIDTH + 2, MINIMAP_HEIGHT + 2), 1)
+        self.screen.blit(minimap_surface, (map_x, map_y))
+
     def run(self):
         while self.running:
             for event in pygame.event.get():
@@ -197,6 +236,7 @@ class Game:
             
             self.draw_radar()
             self.draw_status_bar() # Draw the status bar
+            self.draw_minimap() # Draw the minimap
             pygame.display.flip() 
             self.clock.tick(FPS)
 

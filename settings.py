@@ -72,3 +72,12 @@ NPC_COLOR = (0, 0, 255) # Blue
 NPC_MOVEMENT_RANGE = 200 # How far an NPC can move from its starting point
 NPC_HEALTH = 50
 NPC_DETECTION_RADIUS = 150 # How close the player needs to be for the NPC to follow
+
+# Minimap Settings
+MINIMAP_WIDTH = 150
+MINIMAP_HEIGHT = 100
+MINIMAP_MARGIN = 10
+MINIMAP_BG_COLOR = (30, 30, 30, 200)  # Dark semi-transparent
+MINIMAP_ROOM_COLOR = (100, 100, 100) # Gray for rooms
+MINIMAP_PLAYER_COLOR = (255, 0, 0)   # Red for player
+MINIMAP_BORDER_COLOR = (150, 150, 150) # Light gray for border
