@@ -32,6 +32,14 @@ class CombatManager: # Or CombatSystem
         #             # So, no direct kill increment needed here.
         print(f"Placeholder: {entity_attacking} melee attacking with {weapon.name}")
 
+    def inflict_damage_on_player(self, player_target, amount, source_entity=None):
+        """Inflicts damage on a player entity and logs the event."""
+        if player_target and hasattr(player_target, 'take_damage'):
+            player_target.take_damage(amount)
+            source_name = source_entity.__class__.__name__ if source_entity else "Unknown source"
+            print(f"CombatManager: {source_name} dealt {amount} damage to {player_target.__class__.__name__}")
+        else:
+            print(f"CombatManager Error: Invalid player_target or player_target cannot take damage.")
 
     def process_damage_events(self):
         # This method would handle queued damage events, apply damage, check for deaths, etc.

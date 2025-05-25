@@ -21,6 +21,9 @@ from game.systems.entity_manager import EntityManager # Added import
 from game.systems.combat_system import CombatManager # Added import
 from game.ui.ui_manager import UIManager # Added import
 from game.core.camera import Camera # Added import
+from game.utils.effects import EffectManager # Import EffectManager
+from game.systems.weapon_system import WeaponSystem # Import WeaponSystem
+from game.core.event_manager import EventManager # Import EventManager
 
 class Game:
     def __init__(self):
@@ -43,6 +46,9 @@ class Game:
         self.camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT)
         self.entity_manager = EntityManager()
         self.combat_manager = CombatManager(self.entity_manager)
+        self.effect_manager = EffectManager() # Instantiate EffectManager
+        self.weapon_system = WeaponSystem(self.entity_manager, self.effect_manager, self.combat_manager) # Instantiate WeaponSystem
+        self.event_manager = EventManager() # Instantiate EventManager
         # Note: settings_module is already imported as 'import game.core.settings as settings_module'
         self.ui_manager = UIManager(self.screen, settings_module) 
         # self.all_sprites, self.projectiles, self.npcs pygame.sprite.Group() initializations are removed.
@@ -56,11 +62,7 @@ class Game:
         # self.all_sprites.add(self.player) # Removed
 
         # WaveManager setup
-        self.wave_manager = WaveManager(
-            all_sprites_group=self.entity_manager.entities, # Use EntityManager's group
-            npcs_group=self.entity_manager.npcs,           # Use EntityManager's group
-            player_reference=self.player
-        )
+        self.wave_manager = WaveManager(self.entity_manager, self.player, self.event_manager) # Pass event_manager
         
         print(f"Initial Weapon: {self.player.weapon}")
 
@@ -95,6 +97,17 @@ class Game:
             leaderboard_manager=self.leaderboard_manager,
             settings=settings_module # Pass the imported settings_module
         )
+        
+        # Subscribe to events
+        self.event_manager.subscribe("NPC_DIED_EVENT", self.handle_npc_killed)
+
+    def handle_npc_killed(self, event_data):
+        # Assuming self.player is valid and has increment_kills method
+        if self.player and hasattr(self.player, 'increment_kills'):
+            self.player.increment_kills()
+            print(f"Game: Player kills updated to {self.player.kills} via NPC_DIED_EVENT. Event data: {event_data}")
+        else:
+            print(f"Game: Player or increment_kills method not found. Cannot update kills for NPC_DIED_EVENT.")
 
     def update_camera(self):
         self.camera.update(self.player) # Use Camera object
@@ -196,20 +209,10 @@ class Game:
                 if event.type == pygame.QUIT:
                     self.running = False
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE: 
-                        if self.player.weapon.type == "ranged" or self.player.weapon.type == "grenade":
-                            # Use entity_manager groups for player shoot method
-                            self.player.shoot(self.entity_manager.projectiles, self.entity_manager.entities, self.entity_manager.npcs)
-                        elif self.player.weapon.type == "melee":
-                            attack_rect = self.player.melee_attack()
-                            if attack_rect:
-                                current_time = pygame.time.get_ticks()
-                                self.melee_attack_visuals.append((attack_rect, current_time, MELEE_ATTACK_COLOR))
-                                # Check for melee attack collisions with NPCs
-                                for npc in self.entity_manager.npcs: # Use entity_manager group
-                                    if attack_rect.colliderect(npc.rect):
-                                        npc.take_damage(self.player.weapon.damage)
-                                        print(f"Melee attack hit NPC for {self.player.weapon.damage} damage!")
+                    if event.key == pygame.K_SPACE:
+                        # Player attack logic now handled by WeaponSystem
+                        self.weapon_system.use_weapon(self.player)
+                        # Old logic for player.shoot and player.melee_attack, including melee visual creation, is removed.
                     elif event.key == pygame.K_1:
                         self.player.equip_weapon("pistol")
                     elif event.key == pygame.K_2:
@@ -221,8 +224,11 @@ class Game:
             # For now, direct update calls for Player and NPC, other entities handled by entity_manager.update()
             self.player.update() # Player movement and input
             for npc in self.entity_manager.npcs: # Update NPCs specifically if they have complex updates
-                 npc.update(self.player.rect, self.player) # NPC update needs player info
+                 npc.update(self.entity_manager, self.combat_manager, self.effect_manager, self.weapon_system) # Pass weapon_system
             
+            # Update EffectManager
+            self.effect_manager.update() # Call EffectManager's update
+
             # self.entity_manager.update(dt) # dt is not yet consistently used.
             # For other entities like projectiles, their update is simple and called if they are in entity_manager.entities
             # and the main loop below iterates through entity_manager.entities.
@@ -237,22 +243,9 @@ class Game:
             if self.player.health <= 0 and not self.game_over:
                 self.game_over = True
 
-            # Projectile-NPC collisions using entity_manager groups
-            for projectile in list(self.entity_manager.projectiles):
-                hit_npcs = pygame.sprite.spritecollide(projectile, self.entity_manager.npcs, False) 
-                if hit_npcs:
-                    if isinstance(projectile, Grenade):
-                        if not projectile.detonated:
-                            # Grenade.explode() might need entity_manager or combat_manager later for AOE
-                            projectile.explode(npcs_group=self.entity_manager.npcs, all_sprites_group=self.entity_manager.entities) 
-                        # Grenade.kill() is called by its own explode or update logic
-                        print(f"Grenade event processed (hit or detonated).")
-                    else: # For regular projectiles
-                        for npc in hit_npcs:
-                            npc.take_damage(projectile.damage)
-                            projectile.kill() # Remove projectile after hit
-                            print(f"Projectile hit NPC for {projectile.damage} damage!")
-                            break # Projectile hits one NPC and is destroyed
+            # Call EntityManager to handle collisions, passing EffectManager
+            self.entity_manager.handle_collisions(self.effect_manager)
+            # The projectile-NPC collision loop has been moved to EntityManager.handle_collisions()
                             
             self.update_camera() 
 
@@ -309,6 +302,9 @@ class Game:
                     # Apply camera offset to melee visual's rect
                     self.screen.blit(temp_surface, self.camera.apply(rect))
             
+            # Draw effects managed by EffectManager
+            self.effect_manager.draw(self.screen, self.camera)
+
             self.draw_radar()
             self.draw_status_bar()
             self.draw_minimap()
@@ -338,13 +334,13 @@ class Game:
         for projectile in list(self.entity_manager.projectiles): 
             projectile.kill()
         self.melee_attack_visuals.clear()
+        self.effect_manager.effects.empty() # Clear existing effects
+        # Re-initialize EffectManager (optional, emptying might suffice)
+        # self.effect_manager = EffectManager() 
+
 
         # Re-initialize WaveManager with entity_manager groups
-        self.wave_manager = WaveManager(
-            all_sprites_group=self.entity_manager.entities, 
-            npcs_group=self.entity_manager.npcs,           
-            player_reference=self.player
-        )
+        self.wave_manager = WaveManager(self.entity_manager, self.player) # Already updated
         # Camera position is reset by its update method based on player
         self.update_camera() 
 

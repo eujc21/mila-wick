@@ -8,9 +8,10 @@ from game.core.settings import ( # Changed import path
 )
 
 class WaveManager:
-    def __init__(self, all_sprites_group, npcs_group, player_reference):
-        self.all_sprites = all_sprites_group
-        self.npcs = npcs_group
+    def __init__(self, entity_manager, player_reference, event_manager=None): # event_manager added
+        self.entity_manager = entity_manager # Store entity_manager
+        self.event_manager = event_manager # Store event_manager
+        # self.all_sprites and self.npcs attributes removed
         self.player_ref = player_reference # Store player reference
         
         # Start at wave 8 (where NPC count is 21)
@@ -102,10 +103,10 @@ class WaveManager:
         spawn_y_max = max(spawn_y_min, world_h - NPC_HEIGHT)
 
         for _ in range(self.npcs_to_spawn_this_wave):
-            spawn_x, spawn_y = self._get_spawn_location(self.player_ref.rect) # Corrected: self.game.player.rect to self.player_ref.rect
-            npc = NPC(spawn_x, spawn_y, player_instance=self.player_ref, all_sprites_group=self.all_sprites) 
-            self.all_sprites.add(npc) # Corrected: self.game.all_sprites to self.all_sprites
-            self.npcs.add(npc) # Corrected: self.game.npcs to self.npcs
+            spawn_x, spawn_y = self._get_spawn_location(self.player_ref.rect)
+            # all_sprites_group argument removed from NPC constructor, pass event_manager
+            npc = NPC(spawn_x, spawn_y, event_manager=self.event_manager) 
+            self.entity_manager.add_entity(npc, "npc") # Add NPC via entity_manager
         
         if self.npcs_to_spawn_this_wave == 0 and (spawn_x_min > spawn_x_max or spawn_y_min > spawn_y_max):
              # Handles case where world is too small and no NPCs could be prepared
@@ -136,9 +137,9 @@ class WaveManager:
                 spawn_x = max(0, min(spawn_x, WORLD_ROOM_COLS * ROOM_WIDTH))
                 spawn_y = max(0, min(spawn_y, WORLD_ROOM_ROWS * ROOM_HEIGHT))
 
-            npc = NPC(spawn_x, spawn_y, player_instance=self.player_ref, all_sprites_group=self.all_sprites) 
-            self.all_sprites.add(npc)
-            self.npcs.add(npc)
+            # all_sprites_group argument removed from NPC constructor, pass event_manager
+            npc = NPC(spawn_x, spawn_y, event_manager=self.event_manager) 
+            self.entity_manager.add_entity(npc, "npc") # Add NPC via entity_manager
             
     def update(self):
         current_time = pygame.time.get_ticks()
@@ -154,12 +155,12 @@ class WaveManager:
 
         if not self.wave_active:
             # Check if all NPCs from previous wave are cleared
-            if not self.npcs:  # Corrected: self.game.npcs to self.npcs
+            if not self.entity_manager.npcs:  # Use entity_manager.npcs
                 if current_time - self.last_wave_end_time > self.rest_period: # Use self.rest_period
                     self.start_next_wave()
         else:
             # Wave is active, check if all NPCs are defeated
-            if not self.npcs: # Corrected: self.game.npcs to self.npcs
+            if not self.entity_manager.npcs: # Use entity_manager.npcs
                 print(f"Wave {self.current_wave_number} cleared!")
                 self.wave_active = False
                 self.last_wave_end_time = current_time
@@ -169,7 +170,7 @@ class WaveManager:
 
     def get_wave_status_text(self):
         if self.wave_active:
-            return f"Wave: {self.current_wave_number} (Active - {len(self.npcs)} left)"
+            return f"Wave: {self.current_wave_number} (Active - {len(self.entity_manager.npcs)} left)" # Use entity_manager.npcs
         else:
             time_to_next_wave = (self.rest_period - (pygame.time.get_ticks() - self.last_wave_end_time)) / 1000
             return f"Wave: {self.current_wave_number} (Resting - Next in {max(0, time_to_next_wave):.1f}s)"

@@ -78,8 +78,52 @@ class EntityManager:
         # If camera offset is needed for all, Group.draw doesn't support it directly,
         # so manual iteration is common.
 
-    def handle_collisions(self):
-        # Centralized collision detection logic will go here.
-        # This will be implemented in a later step.
-        # Example: pygame.sprite.groupcollide(self.projectiles, self.npcs, True, True)
-        pass
+    def handle_collisions(self, effect_manager): # effect_manager added to signature
+        # Projectile-NPC collisions
+        # Need to import Grenade if type checking, ensure path is correct based on current file structure
+        # For now, let's assume grenade.py is still in root, so use 'from grenade import Grenade'
+        # This import will need to be updated when grenade.py moves.
+        try:
+            from grenade import Grenade # Temporary import, adjust path as needed
+        except ImportError:
+            # Fallback if grenade.py has moved to game/entities/grenade.py
+            from game.entities.grenade import Grenade
+
+
+        for projectile in list(self.projectiles): # Iterate over a copy for safe removal
+            # Check collision between this projectile and the group of NPCs
+            hit_npcs = pygame.sprite.spritecollide(projectile, self.npcs, False) # False: don't kill npcs automatically
+
+            if hit_npcs:
+                if isinstance(projectile, Grenade):
+                    if not projectile.detonated:
+                        projectile.explode(effect_manager) # Pass effect_manager
+                    # Grenade.kill() is called by its own explode or update logic, or it might be killed by range in Projectile.update
+                    # If it was a contact grenade that explodes on first hit, ensure it's killed.
+                    # For now, assume fuse or range handles its removal after explosion.
+                    # projectile.kill() # Ensure grenade is removed after processing if it should be. 
+                    # This might be redundant if explode() or update() handles it.
+                    # For now, let's assume grenade's own logic or its Projectile parent class update handles removal.
+                    print(f"EntityManager: Grenade event processed.")
+                else: # For regular projectiles
+                    for npc in hit_npcs: # Should typically be one NPC for a non-exploding projectile
+                        npc.take_damage(projectile.damage)
+                        projectile.kill()  # Remove projectile after hit
+                        print(f"EntityManager: Projectile hit NPC for {projectile.damage} damage!")
+                        break # Projectile hits one NPC and is destroyed
+
+        def handle_player_melee_on_npcs(self, attack_rect, weapon_damage, attacking_player):
+            if not attack_rect:
+                return
+
+            for npc in self.npcs:
+                # Ensure the NPC is not the attacker itself, though NPCs are typically not players.
+                # This is more relevant if this method were generalized for any entity attacking NPCs.
+                if npc is attacking_player: 
+                    continue
+
+                if attack_rect.colliderect(npc.rect):
+                    if npc.alive: # Only damage alive NPCs
+                        npc.take_damage(weapon_damage)
+                        print(f"EntityManager: Melee attack by {attacking_player.__class__.__name__} hit NPC for {weapon_damage} damage!")
+                        # Potentially, this method could return a list of hit NPCs if needed elsewhere.
