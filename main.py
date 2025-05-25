@@ -3,11 +3,12 @@ from settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, FPS, CAPTION, LIGHT_GRAY,
     RADAR_RADIUS, RADAR_MARGIN, RADAR_BG_COLOR, RADAR_LINE_COLOR,
     WORLD_ROOM_ROWS, WORLD_ROOM_COLS, ROOM_COLORS, ROOM_WIDTH, ROOM_HEIGHT,
-    MELEE_VISUAL_DURATION, MELEE_ATTACK_COLOR # Import melee visual settings
+    MELEE_VISUAL_DURATION, MELEE_ATTACK_COLOR, BLACK # Added BLACK here
 )
 from player import Player
 from room import Room
 from projectile import Projectile # Import Projectile
+from npc import NPC # Import NPC
 
 class Game:
     def __init__(self):
@@ -33,6 +34,12 @@ class Game:
         self.all_sprites = pygame.sprite.Group() # For player, projectiles, etc.
         self.projectiles = pygame.sprite.Group() # Specifically for projectiles (for collision, etc.)
         self.all_sprites.add(self.player) 
+
+        # NPC setup
+        self.npcs = pygame.sprite.Group() # Group for NPCs
+        npc1 = NPC(ROOM_WIDTH + 50, ROOM_HEIGHT / 2) # Example NPC in the second room (to the right)
+        self.all_sprites.add(npc1)
+        self.npcs.add(npc1)
         
         print(f"Initial Weapon: {self.player.weapon}")
 
@@ -47,6 +54,9 @@ class Game:
         self.radar_actual_radius = RADAR_RADIUS 
         self.radar_pos_x = self.radar_actual_radius + RADAR_MARGIN
         self.radar_pos_y = SCREEN_HEIGHT - self.radar_actual_radius - RADAR_MARGIN
+
+        # Font for displaying weapon name
+        self.font = pygame.font.SysFont(None, 36) # Using a default system font
 
     def update_camera(self):
         # Camera follows the player
@@ -74,6 +84,23 @@ class Game:
         blit_pos_y = self.radar_pos_y - self.radar_actual_radius
         self.screen.blit(radar_surface, (blit_pos_x, blit_pos_y))
 
+    def draw_status_bar(self):
+        """Draws the player's current weapon and health in the top-left corner."""
+        weapon_name = "None"
+        if self.player.weapon:
+            weapon_name = self.player.weapon.name
+        
+        player_health = self.player.health
+
+        weapon_text = f"Weapon: {weapon_name}"
+        health_text = f"Health: {player_health}"
+
+        weapon_surface = self.font.render(weapon_text, True, BLACK)
+        health_surface = self.font.render(health_text, True, BLACK)
+
+        self.screen.blit(weapon_surface, (10, 10))
+        self.screen.blit(health_surface, (10, 10 + weapon_surface.get_height() + 5))
+
     def run(self):
         while self.running:
             for event in pygame.event.get():
@@ -97,7 +124,12 @@ class Game:
                         self.player.equip_weapon("knife")
 
             # Update all sprites (player and projectiles)
-            self.all_sprites.update() 
+            # Pass player's rect to NPC update for follow logic
+            for sprite in self.all_sprites:
+                if isinstance(sprite, NPC):
+                    sprite.update(self.player.rect)
+                else:
+                    sprite.update() 
             # self.projectiles.update() # No longer needed if all_sprites handles all updates
             self.update_camera() 
 
@@ -106,6 +138,41 @@ class Game:
             for room in self.rooms:
                 room.draw(self.screen, self.camera_x, self.camera_y)
             
+            # Draw NPC patrol areas (for debugging/visualization)
+            for npc_sprite in self.npcs:
+                if not npc_sprite.is_following_player: # Only draw if patrolling
+                    patrol_rect_world = pygame.Rect(
+                        npc_sprite.patrol_limit_left, 
+                        npc_sprite.rect.top, # Use NPC's current y and height for the visualization
+                        npc_sprite.patrol_limit_right - npc_sprite.patrol_limit_left, 
+                        npc_sprite.rect.height
+                    )
+                    # Convert world coordinates to screen coordinates
+                    patrol_rect_screen_x = patrol_rect_world.x - self.camera_x
+                    patrol_rect_screen_y = patrol_rect_world.y - self.camera_y
+                    pygame.draw.rect(self.screen, (255, 255, 0, 100), 
+                                     (patrol_rect_screen_x, patrol_rect_screen_y, patrol_rect_world.width, patrol_rect_world.height), 1) # Yellow, thin border
+
+                # Draw health bar if NPC is being followed (discovered)
+                if npc_sprite.is_following_player and npc_sprite.health > 0:
+                    HEALTH_BAR_HEIGHT = 5
+                    HEALTH_BAR_Y_OFFSET = 10 # Distance above NPC rect
+                    health_percentage = npc_sprite.health / npc_sprite.max_health
+                    
+                    # Background of health bar (e.g., red for lost health)
+                    bg_bar_width = npc_sprite.rect.width
+                    bg_bar_x_world = npc_sprite.rect.x
+                    bg_bar_y_world = npc_sprite.rect.top - HEALTH_BAR_Y_OFFSET
+                    bg_bar_screen_x = bg_bar_x_world - self.camera_x
+                    bg_bar_screen_y = bg_bar_y_world - self.camera_y
+                    pygame.draw.rect(self.screen, (255, 0, 0), 
+                                     (bg_bar_screen_x, bg_bar_screen_y, bg_bar_width, HEALTH_BAR_HEIGHT))
+
+                    # Foreground of health bar (e.g., green for current health)
+                    fg_bar_width = bg_bar_width * health_percentage
+                    pygame.draw.rect(self.screen, (0, 255, 0), 
+                                     (bg_bar_screen_x, bg_bar_screen_y, fg_bar_width, HEALTH_BAR_HEIGHT))
+
             # Draw all sprites (player and projectiles) relative to camera
             for sprite in self.all_sprites:
                 screen_x = sprite.rect.x - self.camera_x
@@ -129,6 +196,7 @@ class Game:
                     self.screen.blit(temp_surface, (screen_rect_x, screen_rect_y))
             
             self.draw_radar()
+            self.draw_status_bar() # Draw the status bar
             pygame.display.flip() 
             self.clock.tick(FPS)
 

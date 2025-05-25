@@ -63,3 +63,12 @@ DEFAULT_PROJECTILE_COLOR = (255, 0, 0) # Red, as requested
 # Melee Attack Visuals
 MELEE_VISUAL_DURATION = 100  # milliseconds
 MELEE_ATTACK_COLOR = (255, 0, 0, 150) # Red, slightly transparent for alpha
+
+# NPC Settings
+NPC_WIDTH = 30
+NPC_HEIGHT = 30
+NPC_SPEED = 2
+NPC_COLOR = (0, 0, 255) # Blue
+NPC_MOVEMENT_RANGE = 200 # How far an NPC can move from its starting point
+NPC_HEALTH = 50
+NPC_DETECTION_RADIUS = 150 # How close the player needs to be for the NPC to follow
