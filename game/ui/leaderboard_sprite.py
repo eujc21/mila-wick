@@ -1,11 +1,12 @@
 \
 import pygame
-from leaderboard import Leaderboard # Assuming leaderboard.py is in the same directory
-# Import UI colors from settings
-from settings import (
-    UI_WHITE, UI_BLACK, UI_GRAY, UI_LIGHT_BLUE, UI_INPUT_BOX_COLOR,
-    UI_INPUT_TEXT_COLOR, UI_PROMPT_COLOR, UI_SCORE_TEXT_COLOR, UI_CURSOR_COLOR,
-    UI_LEADERBOARD_OVERLAY_COLOR
+import os
+# Import settings from the correct path
+from game.core.settings import (
+    UI_WHITE, UI_BLACK, UI_GRAY, UI_LIGHT_BLUE, 
+    UI_INPUT_BOX_COLOR, UI_INPUT_TEXT_COLOR, 
+    UI_PROMPT_COLOR, UI_SCORE_TEXT_COLOR, UI_CURSOR_COLOR, 
+    UI_LEADERBOARD_OVERLAY_COLOR, SCREEN_WIDTH, SCREEN_HEIGHT
 )
 
 class LeaderboardSprite:

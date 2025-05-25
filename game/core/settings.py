@@ -26,10 +26,33 @@ UI_SCORE_TEXT_COLOR = UI_WHITE
 UI_CURSOR_COLOR = UI_BLACK
 UI_LEADERBOARD_OVERLAY_COLOR = (0, 0, 0, 180) # Dark semi-transparent
 
+# UI Font Settings
+UI_FONT_NAME = "arial"  # Default font name
+UI_FONT_SIZE_TITLE = 36
+UI_FONT_SIZE_SCORE = 28
+UI_FONT_SIZE_INPUT = 24
+
+# Consolidating UI Colors into a dictionary for easier management in tests or UI components
+UI_COLORS = {
+    "background": (30, 30, 30, 200),  # Dark semi-transparent
+    "text": UI_WHITE,
+    "highlight": UI_LIGHT_BLUE,
+    "input_background": UI_INPUT_BOX_COLOR,
+    "input_text": UI_INPUT_TEXT_COLOR,
+    "border": UI_GRAY,
+    "title": UI_WHITE,
+    "score": UI_WHITE,
+    "prompt": UI_PROMPT_COLOR,
+    "cursor": UI_CURSOR_COLOR,
+    "overlay": UI_LEADERBOARD_OVERLAY_COLOR
+}
+
 # Player settings
 PLAYER_RADIUS = 15
 PLAYER_SPEED = 4
 PLAYER_HEALTH = 100
+PLAYER_START_X = SCREEN_WIDTH // 2 # Added PLAYER_START_X
+PLAYER_START_Y = SCREEN_HEIGHT // 2 # Added PLAYER_START_Y
 
 # Room and World Settings
 ROOM_WIDTH = SCREEN_WIDTH

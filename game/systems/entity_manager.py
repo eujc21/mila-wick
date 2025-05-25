@@ -112,18 +112,18 @@ class EntityManager:
                         print(f"EntityManager: Projectile hit NPC for {projectile.damage} damage!")
                         break # Projectile hits one NPC and is destroyed
 
-        def handle_player_melee_on_npcs(self, attack_rect, weapon_damage, attacking_player):
-            if not attack_rect:
-                return
+    def handle_player_melee_on_npcs(self, attack_rect, weapon_damage, attacking_player):
+        if not attack_rect:
+            return
 
-            for npc in self.npcs:
-                # Ensure the NPC is not the attacker itself, though NPCs are typically not players.
-                # This is more relevant if this method were generalized for any entity attacking NPCs.
-                if npc is attacking_player: 
-                    continue
+        for npc in self.npcs:
+            # Ensure the NPC is not the attacker itself, though NPCs are typically not players.
+            # This is more relevant if this method were generalized for any entity attacking NPCs.
+            if npc is attacking_player: 
+                continue
 
-                if attack_rect.colliderect(npc.rect):
-                    if npc.alive: # Only damage alive NPCs
-                        npc.take_damage(weapon_damage)
-                        print(f"EntityManager: Melee attack by {attacking_player.__class__.__name__} hit NPC for {weapon_damage} damage!")
-                        # Potentially, this method could return a list of hit NPCs if needed elsewhere.
+            if attack_rect.colliderect(npc.rect):
+                if npc.alive: # Only damage alive NPCs
+                    npc.take_damage(weapon_damage)
+                    print(f"EntityManager: Melee attack by {attacking_player.__class__.__name__} hit NPC for {weapon_damage} damage!")
+                    # Potentially, this method could return a list of hit NPCs if needed elsewhere.

@@ -1,11 +1,11 @@
 import pygame
-from settings import (
+from game.core.settings import (
     PLAYER_RADIUS, PLAYER_SPEED, PLAYER_HEALTH, PINK, WHITE, 
     WORLD_WIDTH, WORLD_HEIGHT # Use world dimensions for clamping
 )
-from weapon import Weapon, WEAPON_DATA # Import Weapon class and WEAPON_DATA
-from projectile import Projectile # Import Projectile
-from grenade import Grenade # Import Grenade
+from game.utils.weapon import Weapon, WEAPON_DATA # Import Weapon class and WEAPON_DATA
+from game.entities.projectile import Projectile # Corrected import for Projectile
+from game.entities.grenade import Grenade # Corrected import for Grenade
 from game.core.entity import Entity # Import Entity
 
 class Player(Entity): # Inherit from Entity

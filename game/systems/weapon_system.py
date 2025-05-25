@@ -2,8 +2,8 @@
 
 # (Ensure these imports are correct based on current file locations)
 import pygame
-from projectile import Projectile # Will be game.entities.projectile.Projectile later
-from grenade import Grenade     # Will be game.entities.grenade.Grenade later
+from game.entities.projectile import Projectile # Corrected import
+from game.entities.grenade import Grenade     # Corrected import
 # from game.core.settings import MELEE_ATTACK_COLOR # Example, if needed directly
 
 class WeaponSystem:

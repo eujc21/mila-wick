@@ -1,5 +1,5 @@
 import pygame
-from projectile import Projectile
+from game.entities.projectile import Projectile # Corrected import
 # Updated import path for settings
 from game.core.settings import ( 
     GRENADE_COLOR, GRENADE_FUSE_TIME, GRENADE_EXPLOSION_RADIUS_FACTOR, 

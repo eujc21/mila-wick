@@ -1,16 +1,12 @@
-\
 import random
-import pygame 
-from settings import (
-    # These are no longer strictly needed here if weapons are predefined,
-    # but could be kept for reference or future use if some weapons still use ranges.
-    # WEAPON_DAMAGE_MIN, WEAPON_DAMAGE_MAX, 
-    # WEAPON_FIRE_RATE_MIN, WEAPON_FIRE_RATE_MAX,
-    # WEAPON_PROJECTILE_SPEED_MIN, WEAPON_PROJECTILE_SPEED_MAX,
-    # PROJECTILE_COLOR_MIN, PROJECTILE_COLOR_MAX
-    BLACK, # Example color for pistol projectile
-    GRENADE_DAMAGE, GRENADE_THROW_SPEED, GRENADE_COLOR, GRENADE_FUSE_TIME,
-    SCREEN_WIDTH, SCREEN_HEIGHT, GRENADE_EXPLOSION_RADIUS_FACTOR # Grenade specific settings
+import pygame
+# Import settings from the correct path
+from game.core.settings import (
+    WEAPON_DAMAGE_MIN, WEAPON_DAMAGE_MAX, WEAPON_FIRE_RATE_MIN, WEAPON_FIRE_RATE_MAX,
+    WEAPON_PROJECTILE_SPEED_MIN, WEAPON_PROJECTILE_SPEED_MAX,
+    PROJECTILE_COLOR_MIN, PROJECTILE_COLOR_MAX, DEFAULT_PROJECTILE_COLOR,
+    GRENADE_DAMAGE, GRENADE_THROW_SPEED, GRENADE_COLOR, GRENADE_FUSE_TIME, # Added Grenade settings
+    SCREEN_WIDTH, SCREEN_HEIGHT, GRENADE_EXPLOSION_RADIUS_FACTOR # Added Screen and Grenade Explosion Factor
 )
 
 # Predefined weapon data

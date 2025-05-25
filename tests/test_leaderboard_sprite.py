@@ -10,7 +10,7 @@ sys.path.insert(0, project_root)
 
 from leaderboard_sprite import LeaderboardSprite
 from leaderboard import Leaderboard # For mocking
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, UI_COLORS, UI_FONT, UI_FONT_SIZE
+from game.core.settings import SCREEN_WIDTH, SCREEN_HEIGHT, UI_COLORS, UI_FONT_NAME, UI_FONT_SIZE_TITLE, UI_FONT_SIZE_SCORE, UI_FONT_SIZE_INPUT
 
 class TestLeaderboardSprite(unittest.TestCase):
 
@@ -54,7 +54,10 @@ class TestLeaderboardSprite(unittest.TestCase):
         # Mock settings module if LeaderboardSprite imports it directly
         # For now, assume colors are passed or accessible via a settings object
         self.mock_settings = MagicMock()
-        self.mock_settings.UI_COLORS = UI_COLORS
+        # It's better to access individual color values if they are defined directly in settings
+        # or ensure UI_COLORS is structured as expected by the test.
+        # For this fix, I'll assume UI_COLORS is a dictionary as defined in settings.py
+        self.mock_settings.UI_COLORS = UI_COLORS 
         self.mock_settings.UI_BG_COLOR = UI_COLORS['background']
         self.mock_settings.UI_TEXT_COLOR = UI_COLORS['text']
         self.mock_settings.UI_HIGHLIGHT_COLOR = UI_COLORS['highlight']
@@ -62,6 +65,11 @@ class TestLeaderboardSprite(unittest.TestCase):
         self.mock_settings.UI_INPUT_TEXT_COLOR = UI_COLORS['input_text']
         self.mock_settings.UI_BORDER_COLOR = UI_COLORS['border']
 
+        # Pass individual font settings if they are defined that way
+        self.mock_settings.UI_FONT_NAME = UI_FONT_NAME
+        self.mock_settings.UI_FONT_SIZE_TITLE = UI_FONT_SIZE_TITLE
+        self.mock_settings.UI_FONT_SIZE_SCORE = UI_FONT_SIZE_SCORE
+        self.mock_settings.UI_FONT_SIZE_INPUT = UI_FONT_SIZE_INPUT
 
         self.leaderboard_sprite = LeaderboardSprite(
             screen=self.screen,
