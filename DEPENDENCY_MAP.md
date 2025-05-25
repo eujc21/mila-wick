@@ -9,15 +9,16 @@ This document tracks the major class and module interdependencies in the Mila Wi
     -   Manages game loop, event handling, updates, and rendering.
     -   **Depends on:**
         -   `pygame`
-        -   `settings.py` (for screen dimensions, FPS, colors, world/room config, UI elements)
+        -   `settings.py` (for screen dimensions, FPS, colors, world/room config, UI elements, wave settings)
         -   `Player` (creates and manages player instance)
         -   `Room` (creates and manages room instances)
-        -   `NPC` (creates and manages NPC instances)
+        -   `NPC` (manages NPC group, NPCs created by `WaveManager`)
         -   `Projectile` (indirectly via `Player.shoot()`)
         -   `Grenade` (indirectly via `Player.shoot()` when grenade launcher is equipped)
         -   `ExplosionEffect` (indirectly via `Grenade.explode()`)
+        -   `WaveManager` (creates and manages wave manager instance)
     -   **Key Methods:**
-        -   `__init__()`: Sets up game, player, rooms, NPCs, camera, UI elements.
+        -   `__init__()`: Sets up game, player, rooms, camera, UI elements, `WaveManager`.
         -   `run()`: Main game loop. Handles events:
             -   Player movement (delegated to `Player.update()`).
             -   Player shooting (`Player.shoot()`).
@@ -26,9 +27,12 @@ This document tracks the major class and module interdependencies in the Mila Wi
                 -   Checks for collision with `npcs`.
             -   Weapon switching (`Player.equip_weapon()` for "pistol", "knife", "grenade_launcher").
             -   Updates all sprites in `all_sprites`.
+            -   Updates `WaveManager` (`wave_manager.update()`).
             -   Handles projectile-NPC collisions (calls `npc.take_damage()`, `projectile.kill()`).
+            -   Handles grenade-NPC collisions (calls `grenade.explode()`).
         -   `update_camera()`: Adjusts camera based on player position.
         -   `draw_radar()`, `draw_status_bar()`, `draw_minimap()`: UI rendering.
+            - `draw_status_bar()` now displays kills (`player.kills`) and wave info (`wave_manager.get_wave_status_text()`).
 
 ## Player (`player.py`)
 
@@ -43,17 +47,19 @@ This document tracks the major class and module interdependencies in the Mila Wi
         -   `Grenade` (instantiated in `shoot()` for grenade launcher)
     -   **Key Attributes:**
         -   `weapon: Weapon`
+        -   `kills: int` (tracks number of NPCs killed by the player)
     -   **Key Methods:**
-        -   `__init__()`: Initializes player stats, image, position, initial weapon.
+        -   `__init__()`: Initializes player stats, image, position, initial weapon, `kills` count.
         -   `update()`: Handles movement input, updates position, clamps to world boundaries, redraws image if direction changes.
         -   `shoot(projectiles_group, all_sprites_group, npcs_group)`:
             -   Handles firing logic based on `self.weapon.type`.
             -   If `type == "ranged"`, creates `Projectile` instance.
-            -   If `type == "grenade"`, creates `Grenade` instance, passing `all_sprites_group` and `npcs_group` to it.
+            -   If `type == "grenade"`, creates `Grenade` instance, passing `all_sprites_group`, `npcs_group`, and `self` (player instance for kill tracking) to it.
             -   Adds projectiles/grenades to `projectiles_group` and `all_sprites_group`.
         -   `melee_attack()`: Performs melee attack, returns attack rectangle.
         -   `equip_weapon(weapon_key)`: Switches player's weapon using `WEAPON_DATA`.
         -   `get_melee_attack_rect()`: Calculates melee attack area.
+        -   `increment_kills()`: Increments the player's kill count.
 
 ## Weapons (`weapon.py`)
 
@@ -78,11 +84,11 @@ This document tracks the major class and module interdependencies in the Mila Wi
     -   Base class for projectiles.
     -   **Depends on:**
         -   `pygame`
-        -   `settings.py` (for default projectile size/color if not overridden)
+        -   `settings.py` (for default projectile size/color, `PROJECTILE_MAX_RANGE`)
         -   `Weapon` (instance passed to constructor to get stats like speed, damage, color)
     -   **Key Methods:**
-        -   `__init__(x, y, direction_vector, weapon_stats)`
-        -   `update()`: Moves projectile, kills if off-screen.
+        -   `__init__(x, y, direction_vector, weapon_stats)`: Stores `start_x`, `start_y` for range calculation.
+        -   `update()`: Moves projectile, kills if off-screen or `PROJECTILE_MAX_RANGE` is exceeded.
 
 ### `grenade.py`
 
@@ -94,62 +100,69 @@ This document tracks the major class and module interdependencies in the Mila Wi
         -   `settings.py` (for default grenade stats, explosion color)
         -   `ExplosionEffect` (created in `explode()`)
         -   `NPC` (iterates through `npcs_group` in `explode()` to apply damage)
+        -   `Player` (stores `owner` instance, passed from `Player.shoot()`)
     -   **Key Attributes (from `weapon_stats` or defaults):**
         -   `fuse_time`, `explosion_radius`, `grenade_damage`
+        -   `owner: Player` (used to attribute kills, though `NPC.take_damage` handles incrementing)
     -   **Key Methods:**
-        -   `__init__(x, y, direction_vector, weapon_stats, all_sprites_group, npcs_group)`:
+        -   `__init__(x, y, direction_vector, weapon_stats, all_sprites_group, npcs_group, owner)`:
             -   Sets grenade-specific properties from `weapon_stats`.
-            -   Stores `all_sprites_group` (to add `ExplosionEffect`) and `npcs_group` (to damage NPCs).
-        -   `update()`: Manages fuse timer; calls `explode()` when timer ends.
-        -   `explode()`:
-            -   Creates `ExplosionEffect`.
-            -   Checks for NPCs within `explosion_radius` and calls `npc.take_damage()`.
--   **`ExplosionEffect(pygame.sprite.Sprite)` Class:**
-    -   Visual effect for grenade explosion.
-    -   **Depends on:**
-        -   `pygame`
-    -   **Key Methods:**
-        -   `__init__(center, radius, color, duration)`
-        -   `update()`: Kills sprite after `duration`.
+            -   Stores `owner`.
+        -   `update()`: Manages fuse timer; calls `explode()` when fuse ends.
+        -   `explode()`: Creates `ExplosionEffect`, damages NPCs in radius (calls `npc.take_damage()`), kills self.
 
 ## NPCs (`npc.py`)
 
 -   **`NPC(pygame.sprite.Sprite)` Class:**
-    -   Represents Non-Player Characters.
+    -   Represents a non-player character.
     -   **Depends on:**
         -   `pygame`
-        -   `settings.py` (for NPC stats, colors, behavior parameters)
+        -   `settings.py` (for NPC stats, colors, movement behavior)
+        -   `Player` (optional `player_instance` for kill tracking)
+    -   **Key Attributes:**
+        -   `health`, `speed`, `damage`
+        -   `player_instance: Player` (optional, for kill tracking)
     -   **Key Methods:**
-        -   `take_damage(amount)`: Reduces NPC health.
-        -   `update(player_rect)`: Handles movement (patrolling, following player), updates image.
+        -   `__init__(x, y, player_instance=None)`: Initializes NPC, optionally stores `player_instance`.
+        -   `update(player_rect)`: Handles movement (patrolling or following player).
+        -   `take_damage(amount)`: Reduces health. If health <= 0, kills NPC and calls `player_instance.increment_kills()` if `player_instance` exists.
 
-## Settings (`settings.py`)
+## Effects (`grenade.py` - might be moved later)
 
--   Contains all game constants:
-    -   Screen, FPS, colors.
-    -   Player, NPC, projectile, **grenade** stats (speed, damage, fuse time, explosion radius, colors).
-    -   Weapon defaults (though many are now in `WEAPON_DATA`).
-    -   World, room, UI (radar, minimap) dimensions and colors.
+-   **`ExplosionEffect(pygame.sprite.Sprite)` Class:**
+    -   Visual effect for grenade explosion.
+    -   **Depends on:**
+        -   `pygame`
+        -   `settings.py` (for explosion duration, color)
+    -   **Key Methods:**
+        -   `__init__(center_x, center_y, radius, color, duration)`
+        -   `update()`: Manages visual effect lifetime.
 
-## Previous `DEPENDENCY_MAP.md` content (for reference, to be merged/updated)
+## World & Rooms (`room.py`)
 
-### Implemented (from previous state):
--   ✅ Collision detection between projectiles and NPCs (`Game.run()`, `pygame.sprite.spritecollide()`).
--   ✅ Damage application from projectile collisions (`Game.run()` calls `npc.take_damage()`).
--   ✅ Damage application from melee attacks (`Game.run()` checks `attack_rect.colliderect(npc.rect)` and calls `npc.take_damage()`).
--   ✅ Projectile destruction on hit (`projectile.kill()` in `Game.run()`).
+-   **`Room` Class:**
+    -   Represents a single room in the game world.
+    -   **Depends on:**
+        -   `pygame`
+        -   `settings.py` (for room dimensions)
+    -   **Key Methods:**
+        -   `__init__(grid_x, grid_y, color)`
+        -   `draw(surface, camera_x, camera_y)`: Draws room relative to camera.
 
-### Current State of Damage & Collision:
--   **Projectile Damage:**
-    -   `Game.run()`: Iterates `self.projectiles`. `pygame.sprite.spritecollide(projectile, self.npcs, False)` detects hits.
-    -   If hit, `npc.take_damage(projectile.damage)` is called.
-    -   `projectile.kill()` is called.
--   **Melee Damage:**
-    -   `Game.run()`: On spacebar press with melee weapon:
-        -   `attack_rect = self.player.melee_attack()`.
-        -   Iterates `self.npcs`. If `attack_rect.colliderect(npc.rect)`, then `npc.take_damage(self.player.weapon.damage)`.
--   **Grenade Damage:**
-    -   `Grenade.explode()`: Iterates `self.npcs` (passed during `Grenade` creation).
-    -   If NPC is within `self.explosion_radius`, `npc.take_damage(self.grenade_damage)`.
+## Wave Management (`wave_manager.py`)
 
-This map should be updated as new features are added or existing ones are modified.
+-   **`WaveManager` Class:**
+    -   Manages NPC spawning in waves.
+    -   **Depends on:**
+        -   `pygame` (for timing)
+        -   `settings.py` (for `WAVE_REST_TIME`, world dimensions for spawning)
+        -   `NPC` (instantiates NPCs)
+        -   `Player` (passed as `player_reference` to `NPC` for kill tracking)
+    -   **Key Attributes:**
+        -   `all_sprites_group`, `npcs_group` (references to sprite groups in `Game`)
+        -   `player_reference: Player`
+        -   `world_width`, `world_height`
+    -   **Key Methods:**
+        -   `__init__(all_sprites_group, npcs_group, player_reference, world_width, world_height)`
+        -   `update()`: Manages wave timing (active vs. rest), starts new waves.
+        -   `start_next_wave()`: Increments wave number, calculates NPC count (Fibonacci), calls `spawn_npcs()`.

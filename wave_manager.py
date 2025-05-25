@@ -1,27 +1,38 @@
 import pygame
 import random
 from npc import NPC
-from item import HealthPack # Import HealthPack
+# Removed: from item import HealthPack
 from settings import (
     WORLD_ROOM_COLS, ROOM_WIDTH, WORLD_ROOM_ROWS, ROOM_HEIGHT, 
-    NPC_WIDTH, NPC_HEIGHT, NPC_DETECTION_RADIUS, NPC_CHASE_AREA_MULTIPLIER, ITEM_SIZE 
+    NPC_WIDTH, NPC_HEIGHT, NPC_DETECTION_RADIUS, NPC_CHASE_AREA_MULTIPLIER, ITEM_SIZE, WAVE_REST_TIME
 )
 
 class WaveManager:
-    def __init__(self, game_instance):
-        self.game = game_instance  # Reference to the main game instance
-        self.wave_number = 0
-        # self.npcs_per_wave_base = 10  # Starting number of NPCs - Replaced by Fibonacci
+    def __init__(self, all_sprites_group, npcs_group, player_reference):
+        self.all_sprites = all_sprites_group
+        self.npcs = npcs_group
+        self.player_ref = player_reference # Store player reference
+        
+        # Start at wave 8 (where NPC count is 21)
+        self.current_wave_number = 7 # Will be incremented to 8 on first call to start_next_wave
         self.npcs_to_spawn_this_wave = 0
         self.wave_active = False
-        self.time_between_waves = 1000  # 1 second in milliseconds
+        self.time_between_waves = 1000  # 1 second in milliseconds (used for initial delay logic)
         self.last_wave_end_time = 0
         self.initial_delay_passed = False # To handle delay before first wave
-        # Fibonacci sequence tracking
-        # self.fib_a = 1  # F(1) - Previous values, will be effectively set by initial wave values
-        # self.fib_b = 1  # F(2) - Previous values
-        self.initial_npcs_wave_1 = 21 # Wave 1 starts with 21 NPCs
-        self.initial_npcs_wave_2 = 34 # Wave 2 will have 34 NPCs (21+13, or F(n) after F(n-1)=21)
+        self.rest_period = WAVE_REST_TIME
+        
+        # Fibonacci sequence tracking, adjusted for starting at wave 8 (F(8) = 21 NPCs)
+        # For wave k > 2, npc_count = fib_a + fib_b. fib_a is F(k-2), fib_b is F(k-1)
+        # For first wave being 8 (k=8):
+        # fib_a should be F(6) = 8
+        # fib_b should be F(7) = 13
+        self.fib_a = 8 
+        self.fib_b = 13
+
+        # Start the first wave (wave 8) almost immediately by setting last_wave_end_time appropriately
+        self.last_wave_end_time = pygame.time.get_ticks() - self.rest_period 
+        # This ensures the first call to update() will likely trigger start_next_wave()
 
     def _get_spawn_location(self, player_rect):
         min_dist_from_player = 150  # pixels
@@ -55,32 +66,32 @@ class WaveManager:
         return random.randint(spawn_x_min, spawn_x_max), random.randint(spawn_y_min, spawn_y_max)
 
     def start_next_wave(self):
-        self.wave_number += 1
+        self.current_wave_number += 1
         self.wave_active = True
-
-        if self.wave_number == 1:
-            self.npcs_to_spawn_this_wave = self.initial_npcs_wave_1
-            self.fib_a = 1 # Reset for sequence starting from F(3) effectively
-            self.fib_b = 1 
-        elif self.wave_number == 2:
-            self.npcs_to_spawn_this_wave = self.initial_npcs_wave_2
-            self.fib_a = self.initial_npcs_wave_1 # F(1) for next calculation
-            self.fib_b = self.initial_npcs_wave_2 # F(2) for next calculation
-        else:
-            # Calculate next Fibonacci number for NPCs
-            # F(n) = F(n-1) + F(n-2)
-            # Our wave_number is effectively 'n'.
-            # For wave 3, we need F(3) = F(2) + F(1) = fib_b + fib_a
-            next_fib = self.fib_a + self.fib_b
-            self.npcs_to_spawn_this_wave = next_fib
-            self.fib_a = self.fib_b # Update F(n-2) to previous F(n-1)
-            self.fib_b = next_fib   # Update F(n-1) to current F(n)
         
-        # Ensure a minimum number of NPCs if Fibonacci sequence is too low initially or for very early waves
-        min_npcs_for_any_wave = 1 
-        self.npcs_to_spawn_this_wave = max(self.npcs_to_spawn_this_wave, min_npcs_for_any_wave)
+        # Calculate NPC count using Fibonacci sequence
+        if self.current_wave_number == 1:
+            npc_count = 1
+            self.fib_a = 0 # Reset for sequence: 0, 1, 1, 2, 3, 5...
+            self.fib_b = 1
+        elif self.current_wave_number == 2:
+            npc_count = 1 # Second wave also has 1
+            self.fib_a = 1
+            self.fib_b = 1
+        else:
+            # Next Fibonacci number
+            npc_count = self.fib_a + self.fib_b
+            self.fib_a, self.fib_b = self.fib_b, npc_count # Update sequence
 
-        print(f"Starting Wave {self.wave_number} with {self.npcs_to_spawn_this_wave} NPCs (Fibonacci).")
+        # Ensure at least 1 NPC if fib somehow results in 0 for later waves (should not happen with proper sequence)
+        if npc_count == 0 and self.current_wave_number > 1: 
+            npc_count = 1
+
+        # Store the number of NPCs to spawn for this wave, to be used by the loop below
+        self.npcs_to_spawn_this_wave = npc_count
+
+        print(f"Starting Wave {self.current_wave_number} with {self.npcs_to_spawn_this_wave} NPCs.")
+        # self.spawn_npcs(npc_count) # This call seems redundant if the loop below does the spawning
 
         # Spawn NPCs
         world_w = WORLD_ROOM_COLS * ROOM_WIDTH
@@ -91,32 +102,44 @@ class WaveManager:
         spawn_y_max = max(spawn_y_min, world_h - NPC_HEIGHT)
 
         for _ in range(self.npcs_to_spawn_this_wave):
-            spawn_x, spawn_y = self._get_spawn_location(self.game.player.rect)
-            npc = NPC(spawn_x, spawn_y)
-            self.game.all_sprites.add(npc)
-            self.game.npcs.add(npc)
+            spawn_x, spawn_y = self._get_spawn_location(self.player_ref.rect) # Corrected: self.game.player.rect to self.player_ref.rect
+            npc = NPC(spawn_x, spawn_y, player_instance=self.player_ref) 
+            self.all_sprites.add(npc) # Corrected: self.game.all_sprites to self.all_sprites
+            self.npcs.add(npc) # Corrected: self.game.npcs to self.npcs
         
-        # Spawn a health pack for the new wave
-        item_spawn_x_max = max(0, world_w - ITEM_SIZE[0])
-        item_spawn_y_max = max(0, world_h - ITEM_SIZE[1])
-        
-        if item_spawn_x_max > 0 and item_spawn_y_max > 0: 
-            health_pack_x, health_pack_y = self._get_spawn_location(self.game.player.rect) 
-            health_pack_x = max(0, min(health_pack_x, world_w - ITEM_SIZE[0]))
-            health_pack_y = max(0, min(health_pack_y, world_h - ITEM_SIZE[1]))
-
-            health_pack = HealthPack(health_pack_x, health_pack_y)
-            self.game.all_sprites.add(health_pack)
-            self.game.items.add(health_pack) 
-            print(f"Spawned HealthPack at ({health_pack_x}, {health_pack_y}) for Wave {self.wave_number}")
-        else:
-            print(f"Could not spawn HealthPack for Wave {self.wave_number} due to world size or item size constraints.")
-
         if self.npcs_to_spawn_this_wave == 0 and (spawn_x_min > spawn_x_max or spawn_y_min > spawn_y_max):
              # Handles case where world is too small and no NPCs could be prepared
              print("Could not spawn NPCs for the wave due to world size constraints.")
              self.wave_active = False # Cannot proceed with an empty wave if spawning failed
 
+    def spawn_npcs(self, count):
+        for _ in range(count):
+            # Spawn at random locations across the world, trying to avoid player's immediate vicinity
+            # This is a simple approach; more sophisticated spawning might consider player location,
+            # specific spawn points per room, or ensuring NPCs are off-screen.
+            
+            # For now, random world coordinates:
+            spawn_x = random.randint(0, WORLD_ROOM_COLS * ROOM_WIDTH)
+            spawn_y = random.randint(0, WORLD_ROOM_ROWS * ROOM_HEIGHT)
+            
+            # Basic check to avoid spawning too close to (0,0) if it's the player start
+            # This is a placeholder for better logic.
+            # A robust solution would get player's current position.
+            if abs(spawn_x - ROOM_WIDTH/2) < ROOM_WIDTH/4 and abs(spawn_y - ROOM_HEIGHT/2) < ROOM_HEIGHT/4 and self.current_wave_number < 3:
+                 # Try to push them to a neighboring area if too close to initial player zone
+                if random.choice([True, False]):
+                    spawn_x += random.choice([-1, 1]) * ROOM_WIDTH
+                else:
+                    spawn_y += random.choice([-1, 1]) * ROOM_HEIGHT
+                
+                # Clamp to world boundaries after adjustment
+                spawn_x = max(0, min(spawn_x, WORLD_ROOM_COLS * ROOM_WIDTH))
+                spawn_y = max(0, min(spawn_y, WORLD_ROOM_ROWS * ROOM_HEIGHT))
+
+            npc = NPC(spawn_x, spawn_y, player_instance=self.player_ref) 
+            self.all_sprites.add(npc)
+            self.npcs.add(npc)
+            
     def update(self):
         current_time = pygame.time.get_ticks()
 
@@ -131,12 +154,22 @@ class WaveManager:
 
         if not self.wave_active:
             # Check if all NPCs from previous wave are cleared
-            if not self.game.npcs:  # No NPCs left in the group
-                if current_time - self.last_wave_end_time > self.time_between_waves:
+            if not self.npcs:  # Corrected: self.game.npcs to self.npcs
+                if current_time - self.last_wave_end_time > self.rest_period: # Use self.rest_period
                     self.start_next_wave()
         else:
             # Wave is active, check if all NPCs are defeated
-            if not self.game.npcs: 
-                print(f"Wave {self.wave_number} cleared!")
+            if not self.npcs: # Corrected: self.game.npcs to self.npcs
+                print(f"Wave {self.current_wave_number} cleared!")
                 self.wave_active = False
                 self.last_wave_end_time = current_time
+
+    def get_wave_number(self):
+        return self.current_wave_number
+
+    def get_wave_status_text(self):
+        if self.wave_active:
+            return f"Wave: {self.current_wave_number} (Active - {len(self.npcs)} left)"
+        else:
+            time_to_next_wave = (self.rest_period - (pygame.time.get_ticks() - self.last_wave_end_time)) / 1000
+            return f"Wave: {self.current_wave_number} (Resting - Next in {max(0, time_to_next_wave):.1f}s)"

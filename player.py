@@ -16,6 +16,7 @@ class Player(pygame.sprite.Sprite):
         self.arrow_color = WHITE
         self.health = PLAYER_HEALTH
         self.speed = PLAYER_SPEED
+        self.kills = 0 # Initialize kills counter
         
         self.weapon: Weapon = None # Initialize weapon attribute
         self.equip_weapon(initial_weapon_key) # Equip initial weapon using the new method
@@ -119,7 +120,8 @@ class Player(pygame.sprite.Sprite):
                 
                 grenade = Grenade(
                     proj_x, proj_y, fire_direction, self.weapon,
-                    all_sprites_group, npcs_group # Pass these groups
+                    all_sprites_group, npcs_group, # Pass these groups
+                    self # Pass the player instance as the owner
                 )
                 projectiles_group.add(grenade) # Grenades are also projectiles
                 all_sprites_group.add(grenade)
@@ -152,6 +154,9 @@ class Player(pygame.sprite.Sprite):
             #         print(f"Hit {enemy} with {self.weapon.name} for {self.weapon.damage} damage!")
             return attack_rect # Return the attack rect for visualization
         return None # No attack performed or no rect generated
+
+    def increment_kills(self):
+        self.kills += 1
 
     def equip_weapon(self, weapon_key):
         """Equips a weapon to the player based on the weapon_key."""

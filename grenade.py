@@ -7,7 +7,7 @@ from settings import (
 )
 
 class Grenade(Projectile):
-    def __init__(self, x, y, direction_vector, weapon_stats, all_sprites_group, npcs_group):
+    def __init__(self, x, y, direction_vector, weapon_stats, all_sprites_group, npcs_group, owner=None):
         # Grenade-specific stats from weapon_stats (or use defaults if not provided)
         self.fuse_time = getattr(weapon_stats, 'fuse_time', GRENADE_FUSE_TIME)
         self.explosion_radius = getattr(weapon_stats, 'explosion_radius', 
@@ -27,6 +27,7 @@ class Grenade(Projectile):
         self.detonated = False
         self.all_sprites = all_sprites_group # To add explosion visual effect
         self.npcs = npcs_group # To find NPCs to damage
+        self.owner = owner # Store the owner (player) of the grenade
 
         # Grenades might not move like regular projectiles or might have a limited range/arc.
         # For simplicity, they will use projectile's speed from weapon_stats for now.
@@ -58,7 +59,13 @@ class Grenade(Projectile):
             distance_to_npc = pygame.math.Vector2(npc.rect.centerx - self.rect.centerx,
                                                   npc.rect.centery - self.rect.centery).length()
             if distance_to_npc <= self.explosion_radius:
-                npc.take_damage(self.grenade_damage)
+                # Check if NPC is not already dead to prevent multiple kill counts from one explosion
+                if npc.health > 0:
+                    npc.take_damage(self.grenade_damage) # Apply damage
+                    # Check if the NPC died from *this* grenade hit for kill count
+                    if npc.health <= 0 and self.owner: 
+                        # self.owner.increment_kills() # Player instance handles its own kill increment via NPC.take_damage
+                        pass # Kill is now incremented in NPC.take_damage when player_instance is passed to NPC
                 print(f"Grenade damaged NPC {npc} for {self.grenade_damage}")
         self.kill() # Remove grenade projectile after explosion logic
 

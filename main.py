@@ -14,6 +14,7 @@ from room import Room
 from projectile import Projectile # Import Projectile
 from npc import NPC # Import NPC
 from grenade import Grenade # Import Grenade
+from wave_manager import WaveManager # Import WaveManager
 
 class Game:
     def __init__(self):
@@ -38,13 +39,22 @@ class Game:
         
         self.all_sprites = pygame.sprite.Group() # For player, projectiles, etc.
         self.projectiles = pygame.sprite.Group() # Specifically for projectiles (for collision, etc.)
+        self.npcs = pygame.sprite.Group() # Group for NPCs
         self.all_sprites.add(self.player) 
 
-        # NPC setup
-        self.npcs = pygame.sprite.Group() # Group for NPCs
-        npc1 = NPC(ROOM_WIDTH + 50, ROOM_HEIGHT / 2) # Example NPC in the second room (to the right)
-        self.all_sprites.add(npc1)
-        self.npcs.add(npc1)
+        # WaveManager setup
+        self.wave_manager = WaveManager(
+            all_sprites_group=self.all_sprites,
+            npcs_group=self.npcs,
+            player_reference=self.player
+            # world_width and world_height are not expected by WaveManager.__init__
+            # WaveManager calculates these internally from settings.py imports
+        )
+        
+        # Remove initial NPC spawning, WaveManager will handle it
+        # npc1 = NPC(ROOM_WIDTH + 50, ROOM_HEIGHT / 2) 
+        # self.all_sprites.add(npc1)
+        # self.npcs.add(npc1)
         
         print(f"Initial Weapon: {self.player.weapon}")
 
@@ -90,21 +100,36 @@ class Game:
         self.screen.blit(radar_surface, (blit_pos_x, blit_pos_y))
 
     def draw_status_bar(self):
-        """Draws the player's current weapon and health in the top-left corner."""
+        """Draws the player's current weapon, health, kills, and wave info."""
         weapon_name = "None"
         if self.player.weapon:
             weapon_name = self.player.weapon.name
         
         player_health = self.player.health
+        player_kills = self.player.kills
+        wave_status_text = self.wave_manager.get_wave_status_text()
 
         weapon_text = f"Weapon: {weapon_name}"
         health_text = f"Health: {player_health}"
+        kills_text = f"Kills: {player_kills}"
+        wave_text = f"Wave: {wave_status_text}"
 
         weapon_surface = self.font.render(weapon_text, True, BLACK)
         health_surface = self.font.render(health_text, True, BLACK)
+        kills_surface = self.font.render(kills_text, True, BLACK)
+        wave_surface = self.font.render(wave_text, True, BLACK)
 
+        # Display in top-left
         self.screen.blit(weapon_surface, (10, 10))
         self.screen.blit(health_surface, (10, 10 + weapon_surface.get_height() + 5))
+        
+        # Display Kills and Wave info in top-right
+        wave_text_width = wave_surface.get_width()
+        self.screen.blit(wave_surface, (SCREEN_WIDTH - wave_text_width - 10, 10))
+        
+        kills_text_width = kills_surface.get_width()
+        self.screen.blit(kills_surface, (SCREEN_WIDTH - kills_text_width - 10, 10 + wave_surface.get_height() + 5))
+
 
     def draw_minimap(self):
         """Draws a minimap on the bottom-right of the screen."""
@@ -172,12 +197,15 @@ class Game:
                         self.player.equip_weapon("grenade_launcher")
 
             # Update all sprites (player and projectiles)
-            # Pass player\'s rect to NPC update for follow logic
+            # Pass player\\\'s rect to NPC update for follow logic
             for sprite in self.all_sprites:
                 if isinstance(sprite, NPC):
                     sprite.update(self.player.rect)
                 else:
                     sprite.update() 
+            
+            # Update WaveManager
+            self.wave_manager.update()
             
             # Check for projectile-NPC collisions
             for projectile in list(self.projectiles): # Iterate over a copy for safe removal

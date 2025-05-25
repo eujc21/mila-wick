@@ -1,8 +1,15 @@
 import pygame
-from settings import NPC_WIDTH, NPC_HEIGHT, NPC_SPEED, NPC_COLOR, WORLD_WIDTH, WORLD_HEIGHT, NPC_MOVEMENT_RANGE, NPC_HEALTH, NPC_DETECTION_RADIUS
+import random # Import random
+from settings import (
+    NPC_WIDTH, NPC_HEIGHT, NPC_SPEED, NPC_COLOR, NPC_HEALTH, 
+    NPC_DETECTION_RADIUS, NPC_CHASE_AREA_MULTIPLIER,
+    NPC_PATROL_COLOR_HORIZONTAL, NPC_PATROL_COLOR_VERTICAL,
+    HEALTH_PACK_DROP_CHANCE,
+    NPC_MOVEMENT_RANGE, WORLD_WIDTH, WORLD_HEIGHT # Added missing imports
+)
 
 class NPC(pygame.sprite.Sprite):
-    def __init__(self, start_x, start_y):
+    def __init__(self, start_x, start_y, player_instance=None):
         super().__init__()
         self.image = pygame.Surface([NPC_WIDTH, NPC_HEIGHT])
         self.image.fill(NPC_COLOR)
@@ -21,6 +28,7 @@ class NPC(pygame.sprite.Sprite):
         self.patrol_limit_right = self.start_x + self.movement_range
         self.detection_radius = NPC_DETECTION_RADIUS
         self.is_following_player = False
+        self.player_instance = player_instance # Store player instance
 
     def update(self, player_rect): # Player's rect is needed for follow logic
         distance_to_player = pygame.math.Vector2(player_rect.centerx - self.rect.centerx, 
@@ -62,5 +70,16 @@ class NPC(pygame.sprite.Sprite):
         self.health -= amount
         print(f"NPC took {amount} damage, health is now {self.health}")
         if self.health <= 0:
+            print("NPC died")
+            if self.player_instance: # Check if player_instance is set
+                self.player_instance.increment_kills()
             self.kill() # Remove NPC from all sprite groups
-            print("NPC has been defeated.")
+            # Potentially drop an item here
+            if random.random() < HEALTH_PACK_DROP_CHANCE:
+                # Need to know where to add the health pack (e.g., an items group in Game)
+                print(f"NPC dropped a health pack at ({self.rect.centerx}, {self.rect.centery})!")
+                # game_instance.spawn_health_pack(self.rect.centerx, self.rect.centery)
+                # This part needs the Game instance or a callback to spawn items.
+                # For now, we'll just print.
+                # To properly implement, the Game class should handle item spawning and groups.
+                pass # Placeholder for actual item spawning

@@ -84,14 +84,17 @@ HEALTH_PACK_VALUE = 25 # How much health a pack restores
 HEALTH_PACK_DROP_CHANCE = 0.25 # Chance for an NPC to drop a health pack (e.g., 0.1 for 10%)
 
 # Grenade Settings
-GRENADE_COLOR = (50, 50, 50) # Dark gray for the grenade projectile
-GRENADE_EXPLOSION_COLOR = (255, 165, 0) # Orange for explosion
+GRENADE_COLOR = (255, 165, 0) # Orange
+GRENADE_EXPLOSION_COLOR = (255, 69, 0, 180) # Orangey-red, semi-transparent
 GRENADE_FUSE_TIME = 3000 # Milliseconds (3 seconds)
 GRENADE_THROW_SPEED = 7 # Speed at which grenade is thrown
 GRENADE_MAX_THROW_DISTANCE_FACTOR = 0.25 # Factor of SCREEN_WIDTH
 GRENADE_EXPLOSION_RADIUS_FACTOR = 0.05 # Factor of average screen dimension ( (SCREEN_WIDTH + SCREEN_HEIGHT) / 2 )
 GRENADE_DAMAGE = 75
-MIN_WAVE_FOR_GRENADE = 1 # Grenade becomes available starting wave 1
+MIN_WAVE_FOR_GRENADE = 3 # Example: Grenades available from wave 3
+
+# Wave Manager Settings
+WAVE_REST_TIME = 3000 # Milliseconds (3 seconds)
 
 # Minimap Settings
 MINIMAP_WIDTH = 150

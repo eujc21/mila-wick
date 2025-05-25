@@ -1,5 +1,5 @@
 import pygame
-from settings import PROJECTILE_WIDTH, PROJECTILE_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT
+from settings import PROJECTILE_WIDTH, PROJECTILE_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, PROJECTILE_MAX_RANGE
 
 class Projectile(pygame.sprite.Sprite):
     def __init__(self, x, y, direction_vector, weapon_stats): # weapon_stats is a Weapon object
@@ -15,6 +15,10 @@ class Projectile(pygame.sprite.Sprite):
         self.rect.centerx = x
         self.rect.centery = y
 
+        # Store original position for range calculation
+        self.start_x = x
+        self.start_y = y
+
         # Ensure direction_vector is normalized
         if direction_vector.length_squared() > 0:
             self.direction = direction_vector.normalize()
@@ -25,8 +29,12 @@ class Projectile(pygame.sprite.Sprite):
         self.rect.x += self.direction.x * self.speed
         self.rect.y += self.direction.y * self.speed
 
-        # Remove projectile if it goes off the world boundaries
-        if not pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT).colliderect(self.rect):
+        # Calculate distance traveled
+        distance_traveled = pygame.math.Vector2(self.rect.centerx - self.start_x, self.rect.centery - self.start_y).length()
+
+        # Remove projectile if it goes off the world boundaries or exceeds max range
+        if not pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT).colliderect(self.rect) or \
+           distance_traveled > PROJECTILE_MAX_RANGE:
             self.kill() # Remove from all sprite groups
 
 if __name__ == '__main__':
