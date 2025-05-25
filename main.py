@@ -15,6 +15,9 @@ from projectile import Projectile # Import Projectile
 from npc import NPC # Import NPC
 from grenade import Grenade # Import Grenade
 from wave_manager import WaveManager # Import WaveManager
+from leaderboard import Leaderboard # Import Leaderboard
+from leaderboard_sprite import LeaderboardSprite # Import LeaderboardSprite
+import settings # Import the whole settings module to pass to LeaderboardSprite
 
 class Game:
     def __init__(self):
@@ -75,6 +78,22 @@ class Game:
         self.font = pygame.font.SysFont(None, 36) # Using a default system font
         self.game_over_font = pygame.font.SysFont(None, 72) # Font for Game Over message
         self.restart_font = pygame.font.SysFont(None, 48) # Font for Restart prompt
+
+        # Fonts for LeaderboardSprite
+        self.leaderboard_font_prompt = pygame.font.SysFont(None, 48)
+        self.leaderboard_font_input = pygame.font.SysFont(None, 40)
+        self.leaderboard_font_scores = pygame.font.SysFont(None, 36)
+
+        # Leaderboard setup
+        self.leaderboard_manager = Leaderboard() # Instantiate Leaderboard manager
+        self.leaderboard_display = LeaderboardSprite(
+            screen=self.screen,
+            font_prompt=self.leaderboard_font_prompt,
+            font_input=self.leaderboard_font_input,
+            font_scores=self.leaderboard_font_scores,
+            leaderboard_manager=self.leaderboard_manager,
+            settings=settings # Pass the imported settings module
+        )
 
     def update_camera(self):
         # Camera follows the player
@@ -172,28 +191,27 @@ class Game:
     def run(self):
         while self.running:
             if self.game_over:
-                # Game Over screen logic
+                if not self.leaderboard_display.is_active:
+                    self.leaderboard_display.activate(self.player.kills) # Activate with player's score
+
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.running = False
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_r:
-                            self.reset_game() # Call reset_game when R is pressed
+                    action = self.leaderboard_display.handle_event(event)
+                    if action == 'RESTART':
+                        self.reset_game()
+                        self.leaderboard_display.deactivate()
+                    elif action == 'QUIT':
+                        self.running = False
                 
-                self.screen.fill(BLACK) # Fill screen with black
-                game_over_text = self.game_over_font.render("Game Over", True, (255, 0, 0)) # Red text
-                restart_text = self.restart_font.render("Press R to Restart", True, (255, 255, 255)) # White text
+                self.leaderboard_display.update()
+                # Drawing is now handled by leaderboard_display.draw() which includes an overlay
+                # self.screen.fill(BLACK) # No longer needed here if leaderboard draws full screen
+                self.leaderboard_display.draw()
                 
-                # Center Game Over text
-                go_text_rect = game_over_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 50))
-                # Center Restart text below Game Over text
-                restart_text_rect = restart_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 50))
-                
-                self.screen.blit(game_over_text, go_text_rect)
-                self.screen.blit(restart_text, restart_text_rect)
                 pygame.display.flip()
-                self.clock.tick(FPS) # Keep clock ticking
-                continue # Skip the rest of the game loop when game is over
+                self.clock.tick(FPS)
+                continue # Skip the rest of the game loop when game is over / leaderboard is active
             
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -235,9 +253,9 @@ class Game:
             self.wave_manager.update()
             
             # Check for player death
-            if self.player.health <= 0:
+            if self.player.health <= 0 and not self.game_over: # Ensure this only triggers once
                 self.game_over = True
-                # Potentially add a small delay or sound effect here before showing game over screen
+                # No need to activate leaderboard here, it's handled at the top of the loop
 
             # Check for projectile-NPC collisions
             for projectile in list(self.projectiles): # Iterate over a copy for safe removal
@@ -334,7 +352,9 @@ class Game:
     def reset_game(self):
         print("Resetting game...")
         self.game_over = False
-        self.running = True # Ensure the game loop continues
+        # self.running = True # Already true if reset is called from game over
+        if self.leaderboard_display.is_active: # Ensure leaderboard is deactivated
+            self.leaderboard_display.deactivate()
 
         # Reset Player
         start_x = ROOM_WIDTH / 2

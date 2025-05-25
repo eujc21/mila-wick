@@ -5,6 +5,10 @@ name = "pypi"
 
 [packages]
 pygame = "*"
+PyOpenGL = "*"
+PyWavefront = "*"
+PyOpenGL-accelerate = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 

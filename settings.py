@@ -14,6 +14,18 @@ RADAR_BG_COLOR = (50, 50, 50, 150) # Semi-transparent dark gray
 RADAR_LINE_COLOR = (255, 0, 0) # Red
 BLACK = (0,0,0) # For projectile or other elements
 
+# Leaderboard UI Colors
+UI_WHITE = (255, 255, 255)
+UI_BLACK = (0, 0, 0)
+UI_GRAY = (128, 128, 128)
+UI_LIGHT_BLUE = (173, 216, 230)
+UI_INPUT_BOX_COLOR = (200, 200, 200)
+UI_INPUT_TEXT_COLOR = UI_BLACK
+UI_PROMPT_COLOR = UI_WHITE
+UI_SCORE_TEXT_COLOR = UI_WHITE
+UI_CURSOR_COLOR = UI_BLACK
+UI_LEADERBOARD_OVERLAY_COLOR = (0, 0, 0, 180) # Dark semi-transparent
+
 # Player settings
 PLAYER_RADIUS = 15
 PLAYER_SPEED = 4
