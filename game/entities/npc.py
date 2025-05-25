@@ -25,6 +25,7 @@ class NPC(Entity): # Inherit from Entity
         self.event_manager = event_manager # Store event_manager
 
         self.speed = NPC_SPEED
+        self.base_speed = NPC_SPEED # For human-like variation
         self.movement_direction = pygame.math.Vector2(1, 0) # Initial movement direction for patrol
         self.direction = pygame.math.Vector2(1, 0) # Initial facing direction, matches patrol
         self.movement_range = NPC_MOVEMENT_RANGE
@@ -32,6 +33,18 @@ class NPC(Entity): # Inherit from Entity
         self.patrol_limit_right = self.start_x + self.movement_range
         self.detection_radius = NPC_DETECTION_RADIUS
         self.is_following_player = False
+
+        # --- Human-like patrol variables ---
+        # Define patrol waypoints; spread them for a larger, more interesting area
+        self.patrol_points = [
+            (self.start_x, self.start_y),
+            (self.start_x + 150, self.start_y + 60),
+            (self.start_x + 300, self.start_y - 80),
+            (self.start_x + 80, self.start_y + 170)
+        ]
+        self.current_patrol_index = 0
+        self.patrol_pause_until = 0 # Time to pause until (pygame.time.get_ticks())
+        # -------------------------------
 
         # Equip NPC with a knife by default
         if "knife" in WEAPON_DATA:
@@ -85,21 +98,55 @@ class NPC(Entity): # Inherit from Entity
         # Keep NPC within world boundaries
         self.rect.clamp_ip(pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT))
 
+        # --- NPC-NPC collision (prevents overlap) ---
+        for other_npc in entity_manager.npcs:
+            if other_npc is not self and self.rect.colliderect(other_npc.rect):
+                dx = self.rect.centerx - other_npc.rect.centerx
+                dy = self.rect.centery - other_npc.rect.centery
+                if dx == 0 and dy == 0:
+                    dx, dy = 1, 1  # Prevent division by zero
+                overlap_x = (self.rect.width // 2 + other_npc.rect.width // 2) - abs(dx)
+                overlap_y = (self.rect.height // 2 + other_npc.rect.height // 2) - abs(dy)
+                if overlap_x > 0 and abs(dx) > abs(dy):
+                    self.rect.x += (overlap_x if dx > 0 else -overlap_x) // 2
+                elif overlap_y > 0:
+                    self.rect.y += (overlap_y if dy > 0 else -overlap_y) // 2
+
     def _patrol(self):
-        """Handles NPC patrol behavior and updates facing direction."""
-        self.rect.x += self.movement_direction.x * self.speed
-        self.direction = pygame.math.Vector2(self.movement_direction.x, 0) # Update facing for patrol
+        """Human-like patrol: moves between multiple waypoints with natural pauses and speed variation."""
+        now = pygame.time.get_ticks()
+        if now < self.patrol_pause_until:
+            # Still pausing at this waypoint (simulate looking around)
+            return
 
-        if self.movement_direction.x == 1 and self.rect.x >= self.patrol_limit_right:
-            self.movement_direction.x = -1 
-            self.direction.x = -1 # Keep direction consistent
-            self.rect.x = self.patrol_limit_right # Clamp to boundary
-        elif self.movement_direction.x == -1 and self.rect.x <= self.patrol_limit_left:
-            self.movement_direction.x = 1 
-            self.direction.x = 1 # Keep direction consistent
-            self.rect.x = self.patrol_limit_left # Clamp to boundary
+        # Current target waypoint
+        target_x, target_y = self.patrol_points[self.current_patrol_index]
+        dx = target_x - self.rect.centerx
+        dy = target_y - self.rect.centery
+        distance = (dx ** 2 + dy ** 2) ** 0.5
 
-    # take_damage method removed, inherited from Entity
+        # Human-like speed variation
+        speed = self.base_speed * random.uniform(0.9, 1.12)
+
+        if distance < 6:
+            # Arrived at waypoint: pause for a short, random time
+            self.patrol_pause_until = now + random.randint(600, 1800)  # pause 0.6-1.8 seconds
+            # Pick a new random waypoint (not the same as before)
+            next_index = self.current_patrol_index
+            while next_index == self.current_patrol_index and len(self.patrol_points) > 1:
+                next_index = random.randint(0, len(self.patrol_points) - 1)
+            self.current_patrol_index = next_index
+        else:
+            direction = pygame.math.Vector2(dx, dy)
+            if direction.length() > 0:
+                direction = direction.normalize()
+                self.rect.x += direction.x * speed
+                self.rect.y += direction.y * speed
+                self.direction = direction
+
+    def take_damage(self, amount, source=None):
+        super().take_damage(amount)
+        self.is_following_player = True  # Start pursuing player if damaged
 
     def kill(self):
         # Custom NPC death logic
