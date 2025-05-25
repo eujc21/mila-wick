@@ -8,7 +8,9 @@ from settings import (
     # WEAPON_FIRE_RATE_MIN, WEAPON_FIRE_RATE_MAX,
     # WEAPON_PROJECTILE_SPEED_MIN, WEAPON_PROJECTILE_SPEED_MAX,
     # PROJECTILE_COLOR_MIN, PROJECTILE_COLOR_MAX
-    BLACK # Example color for pistol projectile
+    BLACK, # Example color for pistol projectile
+    GRENADE_DAMAGE, GRENADE_THROW_SPEED, GRENADE_COLOR, GRENADE_FUSE_TIME,
+    SCREEN_WIDTH, SCREEN_HEIGHT, GRENADE_EXPLOSION_RADIUS_FACTOR # Grenade specific settings
 )
 
 # Predefined weapon data
@@ -27,8 +29,18 @@ WEAPON_DATA = {
         "fire_rate": 0.5, # seconds per attack (attack speed)
         "range": 50, # pixels, effective range of the knife
         "type": "melee",
-        "projectile_speed": None, # Melee weapons don't have projectile speed
-        "projectile_color": None  # Melee weapons don't have projectile color
+        "projectile_speed": None, # Melee weapons don\'t have projectile speed
+        "projectile_color": None  # Melee weapons don\'t have projectile color
+    },
+    "grenade_launcher": {
+        "name": "Grenade Launcher",
+        "damage": GRENADE_DAMAGE, # Damage is per grenade explosion
+        "fire_rate": 2.0,  # seconds per shot (slower fire rate for grenades)
+        "projectile_speed": GRENADE_THROW_SPEED, # Speed of the grenade projectile
+        "projectile_color": GRENADE_COLOR, # Color of the grenade projectile itself
+        "type": "grenade", # New type for special handling
+        "fuse_time": GRENADE_FUSE_TIME,
+        "explosion_radius": (SCREEN_WIDTH + SCREEN_HEIGHT) / 2 * GRENADE_EXPLOSION_RADIUS_FACTOR
     }
     # Add more weapons here in the future, e.g.:
     # "shotgun": {

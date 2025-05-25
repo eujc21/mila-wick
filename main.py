@@ -13,6 +13,7 @@ from player import Player
 from room import Room
 from projectile import Projectile # Import Projectile
 from npc import NPC # Import NPC
+from grenade import Grenade # Import Grenade
 
 class Game:
     def __init__(self):
@@ -148,28 +149,55 @@ class Game:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE: 
                         # Check weapon type before deciding action
-                        if self.player.weapon.type == "ranged":
-                            self.player.shoot(self.projectiles, self.all_sprites)
+                        if self.player.weapon.type == "ranged" or self.player.weapon.type == "grenade": # Added grenade type
+                            self.player.shoot(self.projectiles, self.all_sprites, self.npcs) # Pass npcs group
                         elif self.player.weapon.type == "melee":
                             attack_rect = self.player.melee_attack() # melee_attack now returns the rect
                             if attack_rect:
                                 current_time = pygame.time.get_ticks()
                                 self.melee_attack_visuals.append((attack_rect, current_time, MELEE_ATTACK_COLOR))
+                                # Check for melee attack collisions with NPCs
+                                for npc in self.npcs:
+                                    if attack_rect.colliderect(npc.rect):
+                                        npc.take_damage(self.player.weapon.damage)
+                                        print(f"Melee attack hit NPC for {self.player.weapon.damage} damage!")
                     elif event.key == pygame.K_1: # Equip pistol
                         print("Equipping Pistol")
                         self.player.equip_weapon("pistol")
                     elif event.key == pygame.K_2: # Equip knife
                         print("Equipping Knife")
                         self.player.equip_weapon("knife")
+                    elif event.key == pygame.K_3: # Equip grenade_launcher
+                        print("Equipping Grenade Launcher")
+                        self.player.equip_weapon("grenade_launcher")
 
             # Update all sprites (player and projectiles)
-            # Pass player's rect to NPC update for follow logic
+            # Pass player\'s rect to NPC update for follow logic
             for sprite in self.all_sprites:
                 if isinstance(sprite, NPC):
                     sprite.update(self.player.rect)
                 else:
                     sprite.update() 
-            # self.projectiles.update() # No longer needed if all_sprites handles all updates
+            
+            # Check for projectile-NPC collisions
+            for projectile in list(self.projectiles): # Iterate over a copy for safe removal
+                hit_npcs = pygame.sprite.spritecollide(projectile, self.npcs, False) 
+                if hit_npcs: # If any NPC was hit by this projectile
+                    if isinstance(projectile, Grenade):
+                        if not projectile.detonated: # Check if already detonated
+                            projectile.explode() # Trigger explosion visuals and damage
+                        projectile.kill() # Remove grenade
+                        # Damage is handled by grenade.explode(), no need to call npc.take_damage here directly for grenades
+                        print(f"Grenade hit NPC and exploded!")
+                    else: # For regular projectiles
+                        for npc in hit_npcs: # Should only be one for a non-exploding projectile
+                            npc.take_damage(projectile.damage)
+                            projectile.kill()  # Remove projectile after hit
+                            print(f"Projectile hit NPC for {projectile.damage} damage!")
+                            break # Projectile hits one NPC and is destroyed
+                    # No need to break here if it was a grenade, as it's already handled and killed.
+                    # For regular projectiles, the inner break handles it.
+                            
             self.update_camera() 
 
             self.screen.fill(LIGHT_GRAY) 

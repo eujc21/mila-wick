@@ -1,7 +1,7 @@
 \
 # Screen dimensions
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 FPS = 60
 CAPTION = "My Pygame Window"
 
@@ -16,7 +16,7 @@ BLACK = (0,0,0) # For projectile or other elements
 
 # Player settings
 PLAYER_RADIUS = 15
-PLAYER_SPEED = 5
+PLAYER_SPEED = 4
 PLAYER_HEALTH = 100
 
 # Room and World Settings
@@ -57,7 +57,8 @@ RADAR_MARGIN = 10
 
 # Projectile Settings
 PROJECTILE_WIDTH = 10
-PROJECTILE_HEIGHT = 4
+PROJECTILE_HEIGHT = 5
+PROJECTILE_MAX_RANGE = 300 # Default maximum distance a projectile can travel
 DEFAULT_PROJECTILE_COLOR = (255, 0, 0) # Red, as requested
 
 # Melee Attack Visuals
@@ -72,6 +73,25 @@ NPC_COLOR = (0, 0, 255) # Blue
 NPC_MOVEMENT_RANGE = 200 # How far an NPC can move from its starting point
 NPC_HEALTH = 50
 NPC_DETECTION_RADIUS = 150 # How close the player needs to be for the NPC to follow
+NPC_CHASE_AREA_MULTIPLIER = 10 # Multiplier for detection radius when chasing
+NPC_PATROL_COLOR_HORIZONTAL = (255, 255, 0, 100) # Yellow, semi-transparent
+NPC_PATROL_COLOR_VERTICAL = (0, 255, 255, 100) # Cyan, semi-transparent
+
+# Item Settings
+ITEM_SIZE = (20, 20) # Default size for items
+HEALTH_PACK_COLOR = (0, 255, 0) # Green for health pack
+HEALTH_PACK_VALUE = 25 # How much health a pack restores
+HEALTH_PACK_DROP_CHANCE = 0.25 # Chance for an NPC to drop a health pack (e.g., 0.1 for 10%)
+
+# Grenade Settings
+GRENADE_COLOR = (50, 50, 50) # Dark gray for the grenade projectile
+GRENADE_EXPLOSION_COLOR = (255, 165, 0) # Orange for explosion
+GRENADE_FUSE_TIME = 3000 # Milliseconds (3 seconds)
+GRENADE_THROW_SPEED = 7 # Speed at which grenade is thrown
+GRENADE_MAX_THROW_DISTANCE_FACTOR = 0.25 # Factor of SCREEN_WIDTH
+GRENADE_EXPLOSION_RADIUS_FACTOR = 0.05 # Factor of average screen dimension ( (SCREEN_WIDTH + SCREEN_HEIGHT) / 2 )
+GRENADE_DAMAGE = 75
+MIN_WAVE_FOR_GRENADE = 1 # Grenade becomes available starting wave 1
 
 # Minimap Settings
 MINIMAP_WIDTH = 150
@@ -81,3 +101,4 @@ MINIMAP_BG_COLOR = (30, 30, 30, 200)  # Dark semi-transparent
 MINIMAP_ROOM_COLOR = (100, 100, 100) # Gray for rooms
 MINIMAP_PLAYER_COLOR = (255, 0, 0)   # Red for player
 MINIMAP_BORDER_COLOR = (150, 150, 150) # Light gray for border
+MINIMAP_HEALTH_PACK_COLOR = (0, 255, 0, 200) # Green, semi-transparent for minimap

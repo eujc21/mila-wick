@@ -6,6 +6,7 @@ from settings import (
 )
 from weapon import Weapon, WEAPON_DATA # Import Weapon class and WEAPON_DATA
 from projectile import Projectile # Import Projectile
+from grenade import Grenade # Import Grenade
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, start_x, start_y, initial_weapon_key="pistol"):
@@ -91,10 +92,10 @@ class Player(pygame.sprite.Sprite):
         if direction_changed:
             self._create_player_image() # Redraw player image if direction changed
 
-    def shoot(self, projectiles_group, all_sprites_group):
-        """Creates a projectile if the fire rate cooldown has passed and weapon is ranged."""
-        if self.weapon.type != "ranged":
-            print(f"Cannot shoot with {self.weapon.name}, it's a melee weapon.")
+    def shoot(self, projectiles_group, all_sprites_group, npcs_group=None): # Added npcs_group
+        """Creates a projectile or grenade if the fire rate cooldown has passed and weapon is ranged or grenade."""
+        if self.weapon.type not in ["ranged", "grenade"]:
+            print(f"Cannot shoot with {self.weapon.name}, it's a {self.weapon.type} weapon.")
             return
 
         current_time = pygame.time.get_ticks()
@@ -111,9 +112,21 @@ class Player(pygame.sprite.Sprite):
             proj_x = self.rect.centerx + spawn_offset.x
             proj_y = self.rect.centery + spawn_offset.y
             
-            projectile = Projectile(proj_x, proj_y, fire_direction, self.weapon)
-            projectiles_group.add(projectile)
-            all_sprites_group.add(projectile) # Add to the main drawing/update group
+            if self.weapon.type == "grenade":
+                if npcs_group is None:
+                    print("Error: npcs_group not provided for grenade launch.")
+                    return # Or handle error appropriately
+                
+                grenade = Grenade(
+                    proj_x, proj_y, fire_direction, self.weapon,
+                    all_sprites_group, npcs_group # Pass these groups
+                )
+                projectiles_group.add(grenade) # Grenades are also projectiles
+                all_sprites_group.add(grenade)
+            elif self.weapon.type == "ranged":
+                projectile = Projectile(proj_x, proj_y, fire_direction, self.weapon)
+                projectiles_group.add(projectile)
+                all_sprites_group.add(projectile) # Add to the main drawing/update group
 
     def melee_attack(self):
         """Performs a melee attack if the cooldown has passed and weapon is melee."""
@@ -146,10 +159,26 @@ class Player(pygame.sprite.Sprite):
             weapon_attrs = WEAPON_DATA[weapon_key]
             self.weapon = Weapon(**weapon_attrs)
             print(f"Player equipped {self.weapon.name}.")
-            # Reset cooldowns when switching weapons to prevent immediate attack/shot
+            
             current_time = pygame.time.get_ticks()
-            self.last_shot_time = current_time 
+            
+            fire_rate_ms = 0
+            # Ensure fire_rate exists and is a number before using it
+            if hasattr(self.weapon, 'fire_rate') and isinstance(self.weapon.fire_rate, (int, float)):
+                fire_rate_ms = int(self.weapon.fire_rate * 1000)
+
+            # Default to starting the cooldown (old behavior if not overridden below)
+            self.last_shot_time = current_time
             self.last_attack_time = current_time
+
+            # Make the first shot/attack available immediately after equipping
+            if self.weapon.type in ["ranged", "grenade"]:
+                # Set last_shot_time so that (current_time - self.last_shot_time) > fire_rate_ms
+                self.last_shot_time = current_time - (fire_rate_ms + 1)
+            
+            if self.weapon.type == "melee":
+                # Set last_attack_time so that (current_time - self.last_attack_time) > fire_rate_ms
+                self.last_attack_time = current_time - (fire_rate_ms + 1)
         else:
             print(f"Warning: Weapon key '{weapon_key}' not found in WEAPON_DATA. No weapon equipped/changed.")
             # Optionally, decide if player should keep current weapon or be unarmed
