@@ -1,8 +1,8 @@
 import pygame
 import random
-from npc import NPC
+from game.entities.npc import NPC # Changed import path
 # Removed: from item import HealthPack
-from settings import (
+from game.core.settings import ( # Changed import path
     WORLD_ROOM_COLS, ROOM_WIDTH, WORLD_ROOM_ROWS, ROOM_HEIGHT, 
     NPC_WIDTH, NPC_HEIGHT, NPC_DETECTION_RADIUS, NPC_CHASE_AREA_MULTIPLIER, ITEM_SIZE, WAVE_REST_TIME
 )
