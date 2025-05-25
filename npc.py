@@ -10,10 +10,11 @@ from settings import (
 )
 from weapon import Weapon, WEAPON_DATA # Import Weapon and WEAPON_DATA
 from attack_visual import AttackVisual # Import AttackVisual
+from game.core.entity import Entity # Import Entity
 
-class NPC(pygame.sprite.Sprite):
+class NPC(Entity): # Inherit from Entity
     def __init__(self, start_x, start_y, player_instance=None, all_sprites_group=None):
-        super().__init__()
+        super().__init__(x=start_x, y=start_y, health=NPC_HEALTH) # Call Entity's __init__
         self.image = pygame.Surface([NPC_WIDTH, NPC_HEIGHT])
         self.image.fill(NPC_COLOR)
         self.rect = self.image.get_rect()
@@ -24,8 +25,8 @@ class NPC(pygame.sprite.Sprite):
         self.all_sprites_group = all_sprites_group # Store the group for adding visuals
 
         self.speed = NPC_SPEED
-        self.health = NPC_HEALTH
-        self.max_health = NPC_HEALTH # Store max health
+        # self.health = NPC_HEALTH # Removed, handled by Entity
+        # self.max_health = NPC_HEALTH # Removed, handled by Entity
         self.movement_direction = pygame.math.Vector2(1, 0) # Initial movement direction (horizontal)
         self.movement_range = NPC_MOVEMENT_RANGE
         self.patrol_limit_left = self.start_x - self.movement_range
@@ -111,20 +112,18 @@ class NPC(pygame.sprite.Sprite):
         # Keep NPC within world boundaries
         self.rect.clamp_ip(pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT))
 
-    def take_damage(self, amount):
-        self.health -= amount
-        print(f"NPC took {amount} damage, health is now {self.health}")
-        if self.health <= 0:
-            print("NPC died")
-            if self.player_instance: # Check if player_instance is set
-                self.player_instance.increment_kills()
-            self.kill() # Remove NPC from all sprite groups
-            # Potentially drop an item here
-            if random.random() < HEALTH_PACK_DROP_CHANCE:
-                # Need to know where to add the health pack (e.g., an items group in Game)
-                print(f"NPC dropped a health pack at ({self.rect.centerx}, {self.rect.centery})!")
-                # game_instance.spawn_health_pack(self.rect.centerx, self.rect.centery)
-                # This part needs the Game instance or a callback to spawn items.
-                # For now, we'll just print.
-                # To properly implement, the Game class should handle item spawning and groups.
-                pass # Placeholder for actual item spawning
+    # take_damage method removed, inherited from Entity
+
+    def kill(self):
+        # Custom NPC death logic
+        print(f"NPC at ({self.rect.x}, {self.rect.y}) is being killed.") # For debugging
+        if self.player_instance:
+            self.player_instance.increment_kills()
+        
+        # Placeholder for item drop, using existing random chance from original take_damage
+        if random.random() < HEALTH_PACK_DROP_CHANCE: # HEALTH_PACK_DROP_CHANCE is imported from settings
+            print(f"NPC dropped a health pack at ({self.rect.centerx}, {self.rect.centery})!")
+            # Actual item spawning logic will be integrated later via a manager or event.
+
+        # Call the superclass's kill method to handle removal from sprite groups
+        super().kill()

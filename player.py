@@ -7,14 +7,15 @@ from settings import (
 from weapon import Weapon, WEAPON_DATA # Import Weapon class and WEAPON_DATA
 from projectile import Projectile # Import Projectile
 from grenade import Grenade # Import Grenade
+from game.core.entity import Entity # Import Entity
 
-class Player(pygame.sprite.Sprite):
+class Player(Entity): # Inherit from Entity
     def __init__(self, start_x, start_y, initial_weapon_key="pistol"):
-        super().__init__()
+        super().__init__(x=start_x, y=start_y, health=PLAYER_HEALTH) # Call Entity's __init__
         self.radius = PLAYER_RADIUS
         self.circle_color = PINK
         self.arrow_color = WHITE
-        self.health = PLAYER_HEALTH
+        # self.health = PLAYER_HEALTH # Removed, handled by Entity
         self.speed = PLAYER_SPEED
         self.kills = 0 # Initialize kills counter
         
@@ -33,14 +34,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.centery = start_y # Initial position in world coordinates
         self._create_player_image() 
 
-    def take_damage(self, amount):
-        self.health -= amount
-        print(f"Player took {amount} damage, health is now {self.health}")
-        if self.health <= 0:
-            self.health = 0
-            print("Player has died!")
-            # Potentially handle game over state here or in the main game loop
-            # For now, just print and ensure health doesn't go negative for display
+    # take_damage method removed, inherited from Entity
 
     def _create_player_image(self):
         surface_size = self.radius * 2
