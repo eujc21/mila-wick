@@ -1,0 +1,281 @@
+[
+  {
+    "id": "Game",
+    "type": "Class",
+    "source_file": "main.py",
+    "label": "`Game` Class",
+    "description_lines": [
+      "Initializes Pygame, screen, clock.",
+      "Manages game loop, event handling, updates, and rendering."
+    ],
+    "dependencies": [
+      {"target": "pygame", "details": null},
+      {"target": "settings.py", "details": "for screen dimensions, FPS, colors, world/room config, UI elements, wave settings"},
+      {"target": "Player", "details": "creates and manages player instance"},
+      {"target": "Room", "details": "creates and manages room instances"},
+      {"target": "NPC", "details": "manages NPC group, NPCs created by `WaveManager`"},
+      {"target": "Projectile", "details": "indirectly via `Player.shoot()`"},
+      {"target": "Grenade", "details": "indirectly via `Player.shoot()` when grenade launcher is equipped"},
+      {"target": "ExplosionEffect", "details": "indirectly via `Grenade.explode()`"},
+      {"target": "WaveManager", "details": "creates and manages wave manager instance"},
+      {"target": "AttackVisual", "details": "indirectly via `NPC` adding instances to `all_sprites` group"}
+    ],
+    "key_attributes": [
+        "`all_sprites`: Pygame sprite group for all game entities including player, NPCs, projectiles, and attack visuals.",
+        "`game_over`: Boolean flag to indicate if the game is in a 'Game Over' state."
+    ],
+    "key_methods": [
+      {"signature": "__init__()", "description": "Sets up game, player, rooms, camera, UI elements, `WaveManager`, `all_sprites` group, and game over fonts."},
+      {
+        "signature": "run()",
+        "description": "Main game loop. Handles events:\\n            - Player movement (delegated to `Player.update()`).\\n            - Player shooting (`Player.shoot()`).\\n            - Player melee attack (`Player.melee_attack()`, checks collision with `npcs`).\\n            - Weapon switching (`Player.equip_weapon()`).\\n            - Updates all sprites in `all_sprites` (this includes `Player`, `NPC`, `Projectile`, `AttackVisual`, etc.).\\n            - Updates `WaveManager` (`wave_manager.update()`).\\n            - Handles projectile-NPC collisions.\\n            - Handles grenade-NPC collisions.\\n            - Checks for player death (`self.player.health <= 0`) and sets `self.game_over = True`.\\n            - If `self.game_over` is true, displays Game Over screen and listens for 'R' key to call `reset_game()` or quit event.\\n            - Renders rooms, all sprites (relative to camera), radar, status bar, and minimap."
+      },
+      {"signature": "update_camera()", "description": "Adjusts camera based on player position."},
+      {"signature": "draw_radar(), draw_status_bar(), draw_minimap()", "description": "UI rendering."},
+      {"signature": "reset_game()", "description": "Resets the game state:\\n            - Sets `self.game_over = False`.\\n            - Re-initializes `Player` instance.\\n            - Clears `npcs`, `projectiles`, `melee_attack_visuals`.\\n            - Re-initializes `WaveManager` instance.\\n            - Resets camera position."}
+    ],
+    "raw_section_title": "Core Gameplay (`main.py`)"
+  },
+  {
+    "id": "Player",
+    "type": "Class",
+    "source_file": "player.py",
+    "label": "`Player(pygame.sprite.Sprite)` Class",
+    "description_lines": [
+      "Represents the player character."
+    ],
+    "dependencies": [
+      {"target": "pygame", "details": null},
+      {"target": "settings.py", "details": "for player stats, colors, world dimensions"},
+      {"target": "Weapon", "details": "holds current weapon instance"},
+      {"target": "WEAPON_DATA", "details": "from `weapon.py`, for equipping weapons"},
+      {"target": "Projectile", "details": "instantiated in `shoot()` for ranged weapons"},
+      {"target": "Grenade", "details": "instantiated in `shoot()` for grenade launcher"}
+    ],
+    "key_attributes": [
+      "`weapon: Weapon`",
+      "`kills: int` (tracks number of NPCs killed by the player)"
+    ],
+    "key_methods": [
+      {"signature": "__init__()", "description": "Initializes player stats, image, position, initial weapon, `kills` count."},
+      {"signature": "update()", "description": "Handles movement input, updates position, clamps to world boundaries, redraws image if direction changes."},
+      {
+        "signature": "shoot(projectiles_group, all_sprites_group, npcs_group)",
+        "description": "Handles firing logic based on `self.weapon.type`.\n            - If `type == \"ranged\"`, creates `Projectile` instance.\n            - If `type == \"grenade\"`, creates `Grenade` instance.\n            - Adds projectiles/grenades to `projectiles_group` and `all_sprites_group`."
+      },
+      {"signature": "melee_attack()", "description": "Performs melee attack, returns attack rectangle."},
+      {"signature": "equip_weapon(weapon_key)", "description": "Switches player's weapon using `WEAPON_DATA`."},
+      {"signature": "get_melee_attack_rect()", "description": "Calculates melee attack area."},
+      {"signature": "increment_kills()", "description": "Increments the player's kill count."}
+    ],
+    "raw_section_title": "Player (`player.py`)"
+  },
+  {
+    "id": "Weapon",
+    "type": "Class",
+    "source_file": "weapon.py",
+    "label": "`Weapon` Class",
+    "description_lines": [
+      "Represents a weapon's attributes."
+    ],
+    "dependencies": [
+      {"target": "settings.py", "details": "for default grenade properties if not in `WEAPON_DATA`"}
+    ],
+    "key_attributes": [
+      "`name`, `damage`, `fire_rate`, `type` (\"ranged\", \"melee\", \"grenade\")",
+      "`projectile_speed`, `projectile_color`",
+      "Other dynamic attributes via `**kwargs` (e.g., `range` for melee, `fuse_time`, `explosion_radius` for grenade launcher)."
+    ],
+    "key_methods": [],
+    "raw_section_title": "Weapons (`weapon.py`)"
+  },
+  {
+    "id": "WEAPON_DATA",
+    "type": "Dictionary",
+    "source_file": "weapon.py",
+    "label": "`WEAPON_DATA` Dictionary",
+    "description_lines": [
+      "Defines attributes for all available weapons (e.g., \"pistol\", \"knife\", \"grenade_launcher\").",
+      "\"grenade_launcher\" entry includes `type: \"grenade\"`, `fuse_time`, `explosion_radius`.",
+      "\"knife\" entry includes `range` used for melee attack distance and visual, `damage`, `fire_rate`."
+    ],
+    "dependencies": [],
+    "used_by": [
+      {"target": "Player.equip_weapon()", "details": null},
+      {"target": "NPC.__init__()", "details": "to equip default knife"}
+    ],
+    "key_attributes": [],
+    "key_methods": [],
+    "raw_section_title": "Weapons (`weapon.py`)"
+  },
+  {
+    "id": "Projectile",
+    "type": "Class",
+    "source_file": "projectile.py",
+    "label": "`Projectile(pygame.sprite.Sprite)` Class",
+    "description_lines": [
+      "Base class for projectiles."
+    ],
+    "dependencies": [
+      {"target": "pygame", "details": null},
+      {"target": "settings.py", "details": "for default projectile size/color, `PROJECTILE_MAX_RANGE`"},
+      {"target": "Weapon", "details": "instance passed to constructor to get stats like speed, damage, color"}
+    ],
+    "key_attributes": [],
+    "key_methods": [
+      {"signature": "__init__(x, y, direction_vector, weapon_stats)", "description": "Stores `start_x`, `start_y` for range calculation."},
+      {"signature": "update()", "description": "Moves projectile, kills if off-screen or `PROJECTILE_MAX_RANGE` is exceeded."}
+    ],
+    "raw_section_title": "Projectiles / `projectile.py`"
+  },
+  {
+    "id": "Grenade",
+    "type": "Class",
+    "source_file": "grenade.py",
+    "label": "`Grenade(Projectile)` Class",
+    "description_lines": [
+      "Specialized projectile that explodes."
+    ],
+    "dependencies": [
+      {"target": "pygame", "details": null},
+      {"target": "Projectile", "details": "base class"},
+      {"target": "settings.py", "details": "for default grenade stats, explosion color"},
+      {"target": "ExplosionEffect", "details": "created in `explode()`"},
+      {"target": "NPC", "details": "iterates through `npcs_group` in `explode()` to apply damage"},
+      {"target": "Player", "details": "stores `owner` instance, passed from `Player.shoot()`"}
+    ],
+    "key_attributes": [
+      "`fuse_time`, `explosion_radius`, `grenade_damage` (from `weapon_stats` or defaults)",
+      "`owner: Player` (used to attribute kills)"
+    ],
+    "key_methods": [
+      {
+        "signature": "__init__(x, y, direction_vector, weapon_stats, all_sprites_group, npcs_group, owner)",
+        "description": "Sets grenade-specific properties from `weapon_stats`. Stores `owner`."
+      },
+      {"signature": "update()", "description": "Manages fuse timer; calls `explode()` when fuse ends."},
+      {"signature": "explode()", "description": "Creates `ExplosionEffect`, damages NPCs in radius, kills self."}
+    ],
+    "raw_section_title": "Projectiles / `grenade.py`"
+  },
+  {
+    "id": "NPC",
+    "type": "Class",
+    "source_file": "npc.py",
+    "label": "`NPC(pygame.sprite.Sprite)` Class",
+    "description_lines": [
+      "Represents a non-player character."
+    ],
+    "dependencies": [
+      {"target": "pygame", "details": null},
+      {"target": "settings.py", "details": "for NPC stats (health, speed), colors, movement behavior, and constants for attack visual (`NPC_ATTACK_VISUAL_THICKNESS`, `NPC_ATTACK_VISUAL_COLOR`, `NPC_ATTACK_VISUAL_DURATION`)"},
+      {"target": "Player", "details": "optional `player_instance` for kill tracking and for targeting"},
+      {"target": "Weapon", "details": "from `weapon.py`, for equipped weapon stats (damage, fire_rate, range)"},
+      {"target": "WEAPON_DATA", "details": "from `weapon.py`, for default weapon (knife)"},
+      {"target": "AttackVisual", "details": "from `attack_visual.py`, for displaying melee attacks"}
+    ],
+    "key_attributes": [
+      "`health`, `speed`",
+      "`weapon: Weapon` (equipped weapon, e.g., knife)",
+      "`attack_cooldown` (derived from weapon's fire_rate)",
+      "`last_attack_time`",
+      "`player_instance: Player` (optional, for kill tracking)",
+      "`all_sprites_group` (passed in constructor, used to add `AttackVisual` instances)"
+    ],
+    "key_methods": [
+      {"signature": "__init__(start_x, start_y, player_instance=None, all_sprites_group=None)", "description": "Initializes NPC stats, equips default weapon (knife), stores `player_instance` and `all_sprites_group`."},
+      {"signature": "update(player_rect, player_object)", "description": "Handles movement (patrolling or following player). If in range and attack cooldown allows, performs melee attack on player (reduces player health), creates an `AttackVisual` instance and adds it to `self.all_sprites_group`."},
+      {"signature": "take_damage(amount)", "description": "Reduces health. If health <= 0, kills NPC and calls `player_instance.increment_kills()` if `player_instance` exists."}
+    ],
+    "raw_section_title": "NPCs (`npc.py`)"
+  },
+  {
+    "id": "AttackVisual",
+    "type": "Class",
+    "source_file": "attack_visual.py",
+    "label": "`AttackVisual(pygame.sprite.Sprite)` Class",
+    "description_lines": [
+      "Represents the visual animation for a melee attack (e.g., by an NPC)."
+    ],
+    "dependencies": [
+      {"target": "pygame", "details": null}
+    ],
+    "key_attributes": [
+      "`image`: Rotated Pygame Surface representing the visual.",
+      "`rect`: Pygame Rect for positioning.",
+      "`creation_time`: Timestamp for managing the visual's lifetime.",
+      "`duration`: How long the visual remains on screen before being removed."
+    ],
+    "key_methods": [
+      {"signature": "__init__(center_pos, width, height, direction_vector, color, duration)", "description": "Initializes the visual's appearance, rotation based on `direction_vector`, and lifetime."},
+      {"signature": "update()", "description": "Checks if the visual's duration has expired; if so, removes itself from all sprite groups (`self.kill()`)."}
+    ],
+    "raw_section_title": "Effects (`attack_visual.py`)"
+  },
+  {
+    "id": "ExplosionEffect",
+    "type": "Class",
+    "source_file": "grenade.py",
+    "label": "`ExplosionEffect(pygame.sprite.Sprite)` Class",
+    "description_lines": [
+      "Visual effect for grenade explosion."
+    ],
+    "dependencies": [
+      {"target": "pygame", "details": null},
+      {"target": "settings.py", "details": "for explosion duration, color"}
+    ],
+    "key_attributes": [],
+    "key_methods": [
+      {"signature": "__init__(center_x, center_y, radius, color, duration)", "description": null},
+      {"signature": "update()", "description": "Manages visual effect lifetime."}
+    ],
+    "raw_section_title": "Effects (`grenade.py`)"
+  },
+  {
+    "id": "Room",
+    "type": "Class",
+    "source_file": "room.py",
+    "label": "`Room` Class",
+    "description_lines": [
+      "Represents a single room in the game world."
+    ],
+    "dependencies": [
+      {"target": "pygame", "details": null},
+      {"target": "settings.py", "details": "for room dimensions"}
+    ],
+    "key_attributes": [],
+    "key_methods": [
+      {"signature": "__init__(grid_x, grid_y, color)", "description": null},
+      {"signature": "draw(surface, camera_x, camera_y)", "description": "Draws room relative to camera."}
+    ],
+    "raw_section_title": "World & Rooms (`room.py`)"
+  },
+  {
+    "id": "WaveManager",
+    "type": "Class",
+    "source_file": "wave_manager.py",
+    "label": "`WaveManager` Class",
+    "description_lines": [
+      "Manages NPC spawning in waves."
+    ],
+    "dependencies": [
+      {"target": "pygame", "details": "for timing"},
+      {"target": "settings.py", "details": "for `WAVE_REST_TIME`, world dimensions for spawning, NPC dimensions"},
+      {"target": "NPC", "details": "instantiates NPCs, passing `player_reference` and `all_sprites_group` to its constructor"},
+      {"target": "Player", "details": "passed as `player_reference` to `NPC` for kill tracking and for `_get_spawn_location`"}
+    ],
+    "key_attributes": [
+      "`all_sprites` (references `Game.all_sprites` group)",
+      "`npcs` (references `Game.npcs` group)",
+      "`player_ref: Player`"
+    ],
+    "key_methods": [
+      {"signature": "__init__(all_sprites_group, npcs_group, player_reference)", "description": "Stores references to sprite groups and player. Initializes wave parameters."},
+      {"signature": "update()", "description": "Manages wave timing (active vs. rest), starts new waves if conditions are met."},
+      {"signature": "start_next_wave()", "description": "Increments wave number, calculates NPC count. Spawns NPCs by creating `NPC` instances (passing `player_reference` and `self.all_sprites` as `all_sprites_group` to constructor). Adds NPCs to `self.all_sprites` and `self.npcs` groups."},
+      {"signature": "spawn_npcs(count)", "description": "Spawns a given number of NPCs. Creates `NPC` instances (passing `player_reference` and `self.all_sprites` as `all_sprites_group` to constructor). Adds NPCs to `self.all_sprites` and `self.npcs` groups."},
+      {"signature": "_get_spawn_location(player_rect)", "description": "Calculates a suitable spawn location for an NPC."}
+    ],
+    "raw_section_title": "Wave Management (`wave_manager.py`)"
+  }
+]

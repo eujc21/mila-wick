@@ -76,6 +76,7 @@ NPC_DETECTION_RADIUS = 150 # How close the player needs to be for the NPC to fol
 NPC_CHASE_AREA_MULTIPLIER = 10 # Multiplier for detection radius when chasing
 NPC_PATROL_COLOR_HORIZONTAL = (255, 255, 0, 100) # Yellow, semi-transparent
 NPC_PATROL_COLOR_VERTICAL = (0, 255, 255, 100) # Cyan, semi-transparent
+NPC_MELEE_COOLDOWN = 1000 # Milliseconds (1 second) between NPC attacks - This can be a default if weapon has no fire_rate
 
 # Item Settings
 ITEM_SIZE = (20, 20) # Default size for items

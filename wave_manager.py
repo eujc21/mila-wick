@@ -103,7 +103,7 @@ class WaveManager:
 
         for _ in range(self.npcs_to_spawn_this_wave):
             spawn_x, spawn_y = self._get_spawn_location(self.player_ref.rect) # Corrected: self.game.player.rect to self.player_ref.rect
-            npc = NPC(spawn_x, spawn_y, player_instance=self.player_ref) 
+            npc = NPC(spawn_x, spawn_y, player_instance=self.player_ref, all_sprites_group=self.all_sprites) 
             self.all_sprites.add(npc) # Corrected: self.game.all_sprites to self.all_sprites
             self.npcs.add(npc) # Corrected: self.game.npcs to self.npcs
         
@@ -136,7 +136,7 @@ class WaveManager:
                 spawn_x = max(0, min(spawn_x, WORLD_ROOM_COLS * ROOM_WIDTH))
                 spawn_y = max(0, min(spawn_y, WORLD_ROOM_ROWS * ROOM_HEIGHT))
 
-            npc = NPC(spawn_x, spawn_y, player_instance=self.player_ref) 
+            npc = NPC(spawn_x, spawn_y, player_instance=self.player_ref, all_sprites_group=self.all_sprites) 
             self.all_sprites.add(npc)
             self.npcs.add(npc)
             

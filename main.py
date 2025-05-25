@@ -23,6 +23,7 @@ class Game:
         pygame.display.set_caption(CAPTION)
         self.clock = pygame.time.Clock()
         self.running = True
+        self.game_over = False # Added game_over state
 
         # World and Room setup
         self.rooms = []
@@ -72,6 +73,8 @@ class Game:
 
         # Font for displaying weapon name
         self.font = pygame.font.SysFont(None, 36) # Using a default system font
+        self.game_over_font = pygame.font.SysFont(None, 72) # Font for Game Over message
+        self.restart_font = pygame.font.SysFont(None, 48) # Font for Restart prompt
 
     def update_camera(self):
         # Camera follows the player
@@ -168,6 +171,30 @@ class Game:
 
     def run(self):
         while self.running:
+            if self.game_over:
+                # Game Over screen logic
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.running = False
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_r:
+                            self.reset_game() # Call reset_game when R is pressed
+                
+                self.screen.fill(BLACK) # Fill screen with black
+                game_over_text = self.game_over_font.render("Game Over", True, (255, 0, 0)) # Red text
+                restart_text = self.restart_font.render("Press R to Restart", True, (255, 255, 255)) # White text
+                
+                # Center Game Over text
+                go_text_rect = game_over_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 50))
+                # Center Restart text below Game Over text
+                restart_text_rect = restart_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 50))
+                
+                self.screen.blit(game_over_text, go_text_rect)
+                self.screen.blit(restart_text, restart_text_rect)
+                pygame.display.flip()
+                self.clock.tick(FPS) # Keep clock ticking
+                continue # Skip the rest of the game loop when game is over
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
@@ -197,16 +224,21 @@ class Game:
                         self.player.equip_weapon("grenade_launcher")
 
             # Update all sprites (player and projectiles)
-            # Pass player\\\'s rect to NPC update for follow logic
+            # Pass player\\\'s rect and player object to NPC update for follow logic and damage dealing
             for sprite in self.all_sprites:
                 if isinstance(sprite, NPC):
-                    sprite.update(self.player.rect)
+                    sprite.update(self.player.rect, self.player) # Pass player object
                 else:
                     sprite.update() 
             
             # Update WaveManager
             self.wave_manager.update()
             
+            # Check for player death
+            if self.player.health <= 0:
+                self.game_over = True
+                # Potentially add a small delay or sound effect here before showing game over screen
+
             # Check for projectile-NPC collisions
             for projectile in list(self.projectiles): # Iterate over a copy for safe removal
                 hit_npcs = pygame.sprite.spritecollide(projectile, self.npcs, False) 
@@ -297,6 +329,40 @@ class Game:
             self.clock.tick(FPS)
 
         pygame.quit()
+
+    # Placeholder for reset_game method - to be implemented next
+    def reset_game(self):
+        print("Resetting game...")
+        self.game_over = False
+        self.running = True # Ensure the game loop continues
+
+        # Reset Player
+        start_x = ROOM_WIDTH / 2
+        start_y = ROOM_HEIGHT / 2
+        self.player.kill() # Remove old player sprite
+        self.player = Player(start_x, start_y) # Create new player instance
+        self.all_sprites.add(self.player) # Add new player to all_sprites
+
+        # Clear existing NPCs and Projectiles
+        for npc in list(self.npcs): # Iterate over a copy for safe removal
+            npc.kill()
+        for projectile in list(self.projectiles): # Iterate over a copy
+            projectile.kill()
+        self.melee_attack_visuals.clear() # Clear any lingering melee visuals
+
+        # Reset WaveManager
+        # Re-initialize WaveManager to reset its state (wave number, timers, etc.)
+        self.wave_manager = WaveManager(
+            all_sprites_group=self.all_sprites,
+            npcs_group=self.npcs,
+            player_reference=self.player
+        )
+        # Reset Camera (optional, if it can drift or player starts far from 0,0)
+        self.camera_x = 0
+        self.camera_y = 0
+        self.update_camera() # Update camera based on new player position
+
+        print("Game has been reset.")
 
 if __name__ == '__main__':
     game = Game()

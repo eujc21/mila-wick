@@ -33,6 +33,15 @@ class Player(pygame.sprite.Sprite):
         self.rect.centery = start_y # Initial position in world coordinates
         self._create_player_image() 
 
+    def take_damage(self, amount):
+        self.health -= amount
+        print(f"Player took {amount} damage, health is now {self.health}")
+        if self.health <= 0:
+            self.health = 0
+            print("Player has died!")
+            # Potentially handle game over state here or in the main game loop
+            # For now, just print and ensure health doesn't go negative for display
+
     def _create_player_image(self):
         surface_size = self.radius * 2
         new_image = pygame.Surface((surface_size, surface_size), pygame.SRCALPHA)
