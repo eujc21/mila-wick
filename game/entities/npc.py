@@ -14,7 +14,7 @@ from game.utils.effects import AttackVisual # New import for AttackVisual
 
 class NPC(Entity): # Inherit from Entity
     def __init__(self, start_x, start_y, event_manager=None): # event_manager added
-        super().__init__(x=start_x, y=start_y, health=NPC_HEALTH) # Call Entity\'s __init__
+        super().__init__(x=start_x, y=start_y, health=NPC_HEALTH) # Call Entity's __init__
         self.image = pygame.Surface([NPC_WIDTH, NPC_HEIGHT])
         self.image.fill(NPC_COLOR)
         self.rect = self.image.get_rect()
@@ -46,43 +46,42 @@ class NPC(Entity): # Inherit from Entity
         players = entity_manager.players.sprites()
         player_sprite = None
         if players:
-            player_sprite = players[0] # Assuming single player
+            player_sprite = players[0]  # Assuming single player
 
         if player_sprite:
             player_rect = player_sprite.rect
             vec_to_player = pygame.math.Vector2(player_rect.centerx - self.rect.centerx, 
                                                 player_rect.centery - self.rect.centery)
             distance_to_player = vec_to_player.length()
-            direction_to_player = pygame.math.Vector2(0,0)
+            direction_to_player = pygame.math.Vector2(0, 0)
             if distance_to_player > 0:
                 direction_to_player = vec_to_player.normalize()
 
-            # Determine if following player (simplified logic for now)
-            # Consider chase_area_radius for more persistent following later
-            if distance_to_player <= self.detection_radius:
+            # Activate following if player is close enough
+            if not self.is_following_player and distance_to_player <= self.detection_radius:
                 self.is_following_player = True
-            else: 
-                self.is_following_player = False
 
             if self.is_following_player:
                 if direction_to_player.length_squared() > 0:
-                    self.direction = direction_to_player # Update facing direction
-                
-                # Movement towards player
+                    self.direction = direction_to_player
+
+                # Move towards player
                 self.rect.x += self.direction.x * self.speed
                 self.rect.y += self.direction.y * self.speed
 
-                # Check for melee attack range and cooldown
-                attack_range = (self.rect.width / 2) + (player_rect.width / 2) + 5 # 5 pixels buffer
+                # Check melee attack range and cooldown
+                attack_range = (self.rect.width / 2) + (player_rect.width / 2) + 5  # 5 pixels buffer
                 effective_attack_range = getattr(self.weapon, 'range', attack_range) if self.weapon else attack_range
 
                 if distance_to_player <= effective_attack_range and self.weapon and self.weapon.type == "melee":
                     weapon_system.use_weapon(self, target_info=player_sprite)
-            else: # Player exists, but not following (e.g., too far)
+            else:
+                # Player is too far, so patrol
                 self._patrol()
-        else: # No player_sprite found
+        else:
+            # No player found, patrol
             self._patrol()
-        
+
         # Keep NPC within world boundaries
         self.rect.clamp_ip(pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT))
 
@@ -105,7 +104,6 @@ class NPC(Entity): # Inherit from Entity
     def kill(self):
         # Custom NPC death logic
         print(f"NPC at ({self.rect.x}, {self.rect.y}) is being killed.") # For debugging
-        # Removed player kill count increment from here
         
         # Emit NPC_DIED_EVENT
         if self.event_manager:
